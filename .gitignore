@@ -1,0 +1,15 @@
+# Relocatable files
+*.o
+relocs
+relocs/*
+
+# Executable files
+a.out
+woody
+woody_woodpacker
+
+# Local vscode config
+.vscode
+
+# Local scripts
+gensources.sh
