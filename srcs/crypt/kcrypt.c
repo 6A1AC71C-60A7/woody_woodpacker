@@ -39,8 +39,10 @@ void	kcrypt(ubyte* const plaintext, uqword plaintext_len, uqword key)
 		"mov %%r8, %%rdx\n"
 		"and $7, %%rdx\n"
 
-		/* plaintext[offset] ^= ((*ubyte)&key)[offset % 8] */
+		/* %r11b = ((*ubyte)&key)[offset % 8] */
 		"movb (%%rsi,%%rdx,1), %%r11b\n"
+
+		/* plaintext[offset] ^= ((*ubyte)&key)[offset % 8] */
 		"xorb %%r11b, (%%rdi,%%r8,1)\n"
 
 		/* plaintext[offset] = ~plaintext[offset] */
@@ -61,7 +63,7 @@ void	kcrypt(ubyte* const plaintext, uqword plaintext_len, uqword key)
 		/* %r10 |= %r9 */
 		"orb %%r9b, %%r10b\n"
 
-		/* plaintext[offset] %r10 */
+		/* plaintext[offset] = %r10 */
 		"movb %%r10b, (%%rdi,%%r8,1)\n"	
 
 		/* plaintext[offset] += ((*ubyte)&key)[offset % 8] */
