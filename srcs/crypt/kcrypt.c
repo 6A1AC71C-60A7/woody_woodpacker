@@ -8,7 +8,7 @@
  * @param plaintext_len The lenght in bytes of the data to be encrypted.
  * @param key 64 bit key used for encryption/decryption.
  */
-void	kcrypt(ubyte* const plaintext, uqword plaintext_len, uqword key)
+void	kcrypt_X86_64(ubyte* const plaintext, uqword plaintext_len, uqword key)
 {
 #ifndef KCRYPT_OPIMIZE
 

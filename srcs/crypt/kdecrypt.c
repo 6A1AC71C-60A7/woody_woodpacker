@@ -3,6 +3,15 @@
 
 #include <stdbool.h>
 #include <unistd.h>
+#include <sys/mman.h>
+#include <sys/syscall.h>
+
+int test(uqword a, uqword b, uqword c)
+{
+	#include <stdio.h>
+	printf("CALL: %lx, %lx, %lx\n", a, b, c);
+	return 0;
+}
 
 /**
  * @brief Decrypts multiple chunks of data. Afterwards decrypts the
@@ -52,6 +61,7 @@ void	kdecrypt(const crypt_pair_t* const targets, uqword targets_len, uqword key,
 	{
 		ciphertext = targets[n].start;
 		ciphertext_len = targets[n].nbytes;
+		mprotect(ciphertext, ciphertext_len, PROT_READ | PROT_WRITE | PROT_EXEC);
 decrypt:
 		for (uqword offset = 0 ; offset < ciphertext_len ; offset++)
 		{
@@ -133,34 +143,18 @@ void	kdecrypt_asm(const crypt_pair_t* const targets, uqword targets_len, uqword 
 		// *** START OFF INJECTED CODE *** //
 		/////////////////////////////////////
 
-		/* Set up anti-debugging (anti ptrace) */
-		///NOTE: This doesn't work in this context but yes in the .ctor (need to find out the reason)
-		///TODO: This will be an option, in all the cases, and won't be injected here
-		// "mov $0, %%rdi\n"
-		// "mov $0, %%rsi\n"
-		// "mov $1, %%rdx\n"
-		// "mov $0, %%rcx\n"
-		// "mov $101, %%rax\n"
-		// "syscall\n"
-		// "cmp $-1, %%rax\n"
-		// "jne not_traced%=\n"
-		// "mov $60, %%rax\n"
-		// "mov $0, %%rdi\n"
-		// "syscall\n"
-		// "not_traced%=:\n"
-
 		/* %rax = N */
 		"pop %%rax\n"
 
 		/* %rdi = &key */
 		"mov $2, %%r9\n"
 		"push %%rax\n"
-		"imul %%r9, %%rax\n" 
+		"imul %%r9, %%rax\n"
 		"lea (%%rsp, %%rax, 8), %%rdi\n" // %rdi points to the first chunk 'nbytes' field
 		"add $8, %%rdi\n" // %rdi points to the key
 		"pop %%rax\n"
 
-		/* r10 is the counter of %rax (N) */
+		/* %r10 is the counter of %rax (N) */
 		"xor %%r10, %%r10\n"
 
 		"decrypt_chunk%=:\n"
@@ -168,6 +162,27 @@ void	kdecrypt_asm(const crypt_pair_t* const targets, uqword targets_len, uqword 
 		/* %r11 = nbytes ; %rsi = start */
 		"pop %%r11\n"
 		"pop %%rsi\n"
+
+		/* Set RWX protection on the target address' segment */
+		"push %%rdi\n"
+		"push %%rsi\n"
+		"push %%rdx\n"
+		"push %%rax\n"
+		"push %%rcx\n"
+		"push %%r11\n"
+		"pushfq\n"
+		"mov %%rsi, %%rdi\n"
+		"mov %%r11, %%rsi\n"
+		"movl $7, %%edx\n"
+		"mov $10, %%rax\n"
+		"syscall\n"
+		"popfq\n"
+		"pop %%r11\n"
+		"pop %%rcx\n"
+		"pop %%rax\n"
+		"pop %%rdx\n"
+		"pop %%rsi\n"
+		"pop %%rdi\n"
 
 		"decrypt_term_msg%=:\n"
 
