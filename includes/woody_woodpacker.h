@@ -28,7 +28,7 @@ typedef struct		elf_map
 }					elf_map_t;
 
 typedef err_t (*build_decryptor_t)(ubyte** const dest, const parse_t* const in,
-		const crypt_pair_t* const targets, uqword* const size);
+		const crypt_pair_t* const targets, uqword* const size, uqword ep);
 
 typedef void (*kcrypt_t)(ubyte* const plaintext, uqword plaintext_len, uqword key);
 
@@ -47,7 +47,7 @@ err_t	map_elf(const char* filename, elf_map_t* const map);
 err_t	lookup_sections_X86_64(const parse_t* const in, const elf_map_t* map,
 		crypt_pair_t* const target_crypt, crypt_pair_t* const target_decrypt);
 err_t	build_decryptor_x86_64(ubyte** const dest, const parse_t* const in,
-		const crypt_pair_t* const targets, uqword* const size);
+		const crypt_pair_t* const targets, uqword* const size, uqword ep);
 void	inject_decryptor_X86_64(elf_map_t* const map, ubyte* decryptor, uqword decryptor_size);
 
 void	encrypt_chunks(const crypt_pair_t* const chunks, uqword key, kcrypt_t kcrypt);

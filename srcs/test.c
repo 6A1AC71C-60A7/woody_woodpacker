@@ -101,7 +101,7 @@ void test_crypt_payload()
 
 	ubyte* payload;
 	uqword payload_len;
-	build_decryptor_x86_64(&payload, &in, targets, &payload_len);
+	build_decryptor_x86_64(&payload, &in, targets, &payload_len, 0X1122334455667788);
 
 	ubyte* mem = mmap(0, payload_len, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
 	if (mem == MAP_FAILED)

@@ -129,9 +129,9 @@ int main(int ac, const char* av[])
 	++av;
 
 	///NOTE: Uncomment for decryption and/or payload testing
-	// test_crypt_payload();
-	// //test_crypt();	
-	// return 0;
+	test_crypt_payload();
+	//test_crypt();	
+	return 0;
 
 	if (ac == 1 || user_asks_for_help(*av) == true)
 	{
@@ -151,7 +151,7 @@ int main(int ac, const char* av[])
 		goto end;
 
 	///TODO: Decryptor must start pushing the true value of the EP for be able to return to it at the end
-	if ((st = arch.build_decryptor(&decryptor, &parse, targets_decrypt, &decryptor_size)) != SUCCESS)
+	if ((st = arch.build_decryptor(&decryptor, &parse, targets_decrypt, &decryptor_size, map.entry_point)) != SUCCESS)
 		goto end;
 
 	//arch.inject_decryptor(&map, decryptor, decryptor_size);
