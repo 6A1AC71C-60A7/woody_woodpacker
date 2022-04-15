@@ -91,9 +91,9 @@ void test_crypt_payload()
 	kcrypt_X86_64(arr2, sizeof(arr2) - 1, key);
 	kcrypt_X86_64(arr3, sizeof(arr3) - 1, key);
 
-	printf("[MSG1 CIPHERTEXT]: %s --> [addr: %p len: %0lX]\n", arr1, arr1, sizeof(arr1) - 1);
-	printf("[MSG2 CIPHERTEXT]: %s --> [addr: %p len: %0lX]\n", arr2, arr2, sizeof(arr2) - 1);
-	printf("[MSG3 CIPHERTEXT]: %s --> [addr: %p len: %0lX]\n", arr3, arr3, sizeof(arr3) - 1);
+	printf("[MSG1 CIPHERTEXT]: %s --> [addr: %p len: %0"PRIXq"]\n", arr1, arr1, (uqword)sizeof(arr1) - 1);
+	printf("[MSG2 CIPHERTEXT]: %s --> [addr: %p len: %0"PRIXq"]\n", arr2, arr2, (uqword)sizeof(arr2) - 1);
+	printf("[MSG3 CIPHERTEXT]: %s --> [addr: %p len: %0"PRIXq"]\n", arr3, arr3, (uqword)sizeof(arr3) - 1);
 
 	parse_t in = {0};
 	in.key = key;
@@ -108,7 +108,7 @@ void test_crypt_payload()
 		perror("mmap");
 	ft_memcpy(mem, payload, payload_len);
 
-	printf("[WRITING THE PAYLOAD]: (size: %lu) on the 'on_test' file\n", payload_len);
+	printf("[WRITING THE PAYLOAD]: (size: %"PRIuq") on the 'on_test' file\n", payload_len);
 	int fd = open("on_test", O_CREAT | O_WRONLY, S_IRWXU);
 	if (fd < 0)
 		perror("open");

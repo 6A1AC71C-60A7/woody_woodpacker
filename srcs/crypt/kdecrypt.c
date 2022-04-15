@@ -6,13 +6,13 @@
 #include <sys/mman.h>
 #include <sys/syscall.h>
 
-int test(uqword a, uqword b, uqword c)
+/* int test(uqword a, uqword b, uqword c)
 {
 	#include <stdio.h>
-	printf("CALL: %lx, %lx, %lx\n", a, b, c);
+	printf("CALL: %"PRIXq", %"PRIXq", %"PRIXq"\n", a, b, c);
 	return 0;
 }
-
+ */
 /**
  * @brief Decrypts multiple chunks of data. Afterwards decrypts the
  * termination msg and print it on stdout.

@@ -11,7 +11,12 @@ uqword	genkey()
 {
 	uqword vec = 0;
 
-	if (syscall(SYS_getrandom, &vec, sizeof(vec), 0) != sizeof(vec))
-		return 0;
+	#ifndef __APPLE__
+		if (syscall(SYS_getrandom, &vec, sizeof(vec), 0) != sizeof(vec))
+			return 0;
+	#else
+		vec = 0x4242424242424242;
+	#endif
+
 	return vec;
 }

@@ -12,7 +12,7 @@
 #include <string.h> // strerror
 #include <sys/mman.h> // nunmap
 
-#define DISPLAY_KEY(key) fprintf(stdout, "key_value: %016lX\n", key)
+#define DISPLAY_KEY(key) fprintf(stdout, "key_value: %016"PRIXq"\n", key)
 
 ///TODO: Endianless must be handled
 ///TODO: Restore mapping protections after decryption
