@@ -1,4 +1,5 @@
 
+#include <stdio.h>
 #include <woody_woodpacker.h>
 #include <ftlibc.h>
 #include <wd_utils.h>
@@ -41,7 +42,8 @@ err_t lookup_sections_X86_64(const parse_t* const in, const elf_map_t* map,
 	}
 
 	const Elf64_Shdr* const shdr = (Elf64_Shdr*)&map->addr[ehdr->e_shoff];
-	const ubyte* const secs_sym_tab = &map->addr[shdr[ehdr->e_shstrndx].sh_offset];
+	dprintf(2, "map->addr: %p, shdr: %p, ehdr: %p size: %lu\n", map->addr, shdr, ehdr, shdr[ehdr->e_shstrndx].sh_offset);
+	const ubyte* const section_names = &map->addr[shdr[ehdr->e_shstrndx].sh_offset];
 
 	uqword amount = 0;
 
@@ -55,7 +57,7 @@ err_t lookup_sections_X86_64(const parse_t* const in, const elf_map_t* map,
 
 		for (uqword y = 0 ; y < ARRLEN(tofind) ; y++)
 		{
-			if (ft_strcmp(tofind[y], (const char*)&secs_sym_tab[shdr[i].sh_name]) == 0)
+			if (ft_strcmp(tofind[y], (const char*)&section_names[shdr[i].sh_name]) == 0)
 			{
 				if (in->opts & O_SELECTSEC && !(in->sections & (1 << y)))
 					continue;

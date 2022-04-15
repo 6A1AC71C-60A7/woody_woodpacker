@@ -21,6 +21,7 @@ $(addprefix srcs/,\
 	encrypt_chunks.c\
 	$(addprefix ftlibc/,\
 		memcpy.c\
+		memmove.c\
 		strcmp.c\
 		strlen.c\
 		strncmp.c\

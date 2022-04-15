@@ -1,9 +1,11 @@
 
 #pragma once
 
+#include <stddef.h>
 #include <wd_types.h>
 #include <wd_error.h>
 #include <elf.h>
+
 
 #define MAX_PAYLOAD_SIZE 512UL
 
@@ -17,6 +19,12 @@
 
 #define GET_ELF_TYPE_X86(x) (((Elf32_Ehdr*)(x))->e_type)
 #define GET_ELF_ENTRY_POINT_X86(x) (((Elf32_Ehdr*)(x))->e_entry)
+
+extern uqword	page_size;
+
+#define PAGE_ROUND(x) ((((x) / page_size) + ((x) % page_size != 0)) * page_size)
+
+//#define PAGE_ROUND(x) 
 
 typedef struct		elf_map
 {

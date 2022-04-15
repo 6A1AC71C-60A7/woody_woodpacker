@@ -5,7 +5,7 @@ RM			=		/bin/rm
 
 include				srcs.mk
 
-CFLAGS		=		-Wall -Wextra #-Werror #-g3 -fsanitize=address
+CFLAGS		=		-Wall -Wextra -g3 -fsanitize=address
 IFLAGS		=		-I$(INCDIR)
 
 ifeq ($(shell uname -s), Darwin)

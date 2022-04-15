@@ -25,7 +25,7 @@ static inline err_t	validate_file(const char* filename, int* const fd, uqword* c
 		goto error;
 	}
 
-	if ((errno = syscall(SYS_fstat, *fd, &buff)) < 0)
+/* 	if ((errno = syscall(SYS_fstat, *fd, &buff)) < 0)
 	{
 		FERROR(EFORMAT_SYSCALL, "fstat", errno, strerror(errno));
 		st = EWRAPPER;
@@ -37,7 +37,7 @@ static inline err_t	validate_file(const char* filename, int* const fd, uqword* c
 		FERROR(EFORMAT_NOTAFILE, filename);
 		st = EARGUMENT;
 		goto error;
-	}
+	} */
 
 	*file_size = buff.st_size;
 
@@ -77,11 +77,13 @@ err_t	map_elf(const char* filename, elf_map_t* const map)
 	if ((st = validate_file(filename, &fd, &map->size)) != SUCCESS)
 		return st;
 
-	if ((map->addr = mmap(0, map->size + MAX_PAYLOAD_SIZE, PROT_READ | PROT_WRITE, MAP_FILE | MAP_PRIVATE, fd, 0)) == MAP_FAILED)
+	if ((map->addr = mmap(NULL, map->size + MAX_PAYLOAD_SIZE, PROT_READ | PROT_WRITE, MAP_FILE | MAP_PRIVATE, fd, 0)) == MAP_FAILED)
 	{
 		FERROR(EFORMAT_WRAPPER, "mmap", errno, strerror(errno));
 		return EWRAPPER;
 	}
+	dprintf(2, "%p\n", map->addr);
+
 
 	return validate_format(map);
 }

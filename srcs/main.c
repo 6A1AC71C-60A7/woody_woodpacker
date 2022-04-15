@@ -1,4 +1,6 @@
 
+#include "wd_error.h"
+#include "wd_types.h"
 #include <wd_crypt.h>
 #include <wd_parse.h>
 #include <ftlibc.h>
@@ -11,6 +13,7 @@
 #include <stdbool.h> // bool
 #include <string.h> // strerror
 #include <sys/mman.h> // nunmap
+#include <sys/syscall.h>
 
 #define DISPLAY_KEY(key) fprintf(stdout, "key_value: %016"PRIXq"\n", key)
 
@@ -116,6 +119,8 @@ static inline err_t	write_woody_file(void* buff, uqword bufflen)
 crypt_pair_t	targets_crypt[PAIRARR_LEN];
 crypt_pair_t	targets_decrypt[PAIRARR_LEN];
 
+uqword			page_size = 0;
+
 int main(int ac, const char* av[])
 {
 	err_t 	st = SUCCESS;
@@ -123,15 +128,21 @@ int main(int ac, const char* av[])
 	elf_map_t map = {0};
 	arch_t	arch = {0};
 
+	page_size = (uqword)sysconf(_SC_PAGE_SIZE);
+	if ((qword)page_size == -1)
+	{
+		FERROR(EFORMAT_WRAPPER, "sysconf", errno, strerror(errno));
+		return (1);
+	}
 	ubyte*	decryptor;
 	uqword	decryptor_size;
 
 	++av;
 
 	///NOTE: Uncomment for decryption and/or payload testing
-	test_crypt_payload();
+	//test_crypt_payload();
 	//test_crypt();	
-	return 0;
+//return 0;
 
 	if (ac == 1 || user_asks_for_help(*av) == true)
 	{
@@ -154,10 +165,10 @@ int main(int ac, const char* av[])
 	if ((st = arch.build_decryptor(&decryptor, &parse, targets_decrypt, &decryptor_size, map.entry_point)) != SUCCESS)
 		goto end;
 
-	//arch.inject_decryptor(&map, decryptor, decryptor_size);
+	arch.inject_decryptor(&map, decryptor, decryptor_size);
 
 	///TODO: Decryptor isn't right yet, so this makes woody crash ...
-	//encrypt_chunks(targets_crypt, parse.key, arch.kcrypt);
+	encrypt_chunks(targets_crypt, parse.key, arch.kcrypt);
 
 	write_woody_file(map.addr, map.size + decryptor_size);
 

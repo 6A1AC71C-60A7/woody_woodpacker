@@ -240,7 +240,7 @@ err_t build_decryptor_x86_64(ubyte** const dest, const parse_t* const in,
 
 	(void)ep;
 	///TODO: Uncomment this to push the entry point at the begin
-	//push_entry_point(*dest, &offset, ep);
+	push_entry_point(*dest, &offset, ep);
 
 	memcpy_offset(*dest, regs_preservation_x86_64, ARRLEN(regs_preservation_x86_64), &offset);
 
