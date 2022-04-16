@@ -25,7 +25,11 @@ static inline err_t	validate_file(const char* filename, int* const fd, uqword* c
 		goto error;
 	}
 
-/* 	if ((errno = syscall(SYS_fstat, *fd, &buff)) < 0)
+	#ifndef __APPLE__
+	if ((errno = syscall(SYS_fstat, *fd, &buff)) < 0)
+	#else
+	if (fstat(*fd, &buff) != 0)
+	#endif
 	{
 		FERROR(EFORMAT_SYSCALL, "fstat", errno, strerror(errno));
 		st = EWRAPPER;
@@ -37,7 +41,7 @@ static inline err_t	validate_file(const char* filename, int* const fd, uqword* c
 		FERROR(EFORMAT_NOTAFILE, filename);
 		st = EARGUMENT;
 		goto error;
-	} */
+	}
 
 	*file_size = buff.st_size;
 
