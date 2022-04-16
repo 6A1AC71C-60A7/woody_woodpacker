@@ -161,15 +161,15 @@ int main(int ac, const char* av[])
 
 	if ((st = handle_key(&parse)) != SUCCESS)
 		goto end;
+	
+	///TODO: Decryptor isn't right yet, so this makes woody crash ...
+	encrypt_chunks(targets_crypt, parse.key, arch.kcrypt);
 
 	///TODO: Decryptor must start pushing the true value of the EP for be able to return to it at the end
 	if ((st = arch.build_decryptor(&decryptor, &parse, targets_decrypt, &decryptor_size, map.entry_point)) != SUCCESS)
 		goto end;
 
 	arch.inject_decryptor(&map, decryptor, decryptor_size);
-
-	///TODO: Decryptor isn't right yet, so this makes woody crash ...
-	encrypt_chunks(targets_crypt, parse.key, arch.kcrypt);
 
 	write_woody_file(map.addr, map.size);
 
