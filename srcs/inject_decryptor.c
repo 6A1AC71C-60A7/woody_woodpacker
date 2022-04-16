@@ -30,6 +30,7 @@ void	inject_decryptor_X86_64(elf_map_t* const map, ubyte* decryptor, uqword decr
 
 	dprintf(2, "header section number %x\n", header->e_shnum);
 
+	// Find text segment
 	while (segment_i < header->e_phnum && !P_ISTEXT(ph[segment_i]))
 		segment_i++;
 
@@ -37,26 +38,37 @@ void	inject_decryptor_X86_64(elf_map_t* const map, ubyte* decryptor, uqword decr
 		dprintf(2, "file offset: %lx, virt addr: %lx, file size: %lx\n",
 			ph[segment_i].p_offset, ph[segment_i].p_vaddr, ph[segment_i].p_filesz);
 
+	// Expand text segment backwards
 	ph[segment_i].p_vaddr -= rounded_size;
 	ph[segment_i].p_paddr -= rounded_size;
 	ph[segment_i].p_filesz += rounded_size;
 	ph[segment_i].p_memsz += rounded_size;
 
+	// Get new virtual address
 	text_vaddr = ph[segment_i].p_vaddr;
+	// Get file segment offset
 	text_offset = ph[segment_i].p_offset;
 
 	segment_i = 0;
+	// Move offsets after text segment
 	while (segment_i < header->e_phnum)
 	{
 		if (ph[segment_i].p_offset > text_offset)
+		{
+			dprintf(2, "relocating segment %zu\n", segment_i);
 			ph[segment_i].p_offset += rounded_size;
+		}
 		segment_i++;
 	}
 
 	section_i = 0;
 	while (section_i < header->e_shnum)
 	{
-		sh[section_i].sh_offset += rounded_size;
+		if (sh[section_i].sh_offset > text_offset)
+		{
+			dprintf(2, "relocating section %zu\n", section_i);
+			sh[section_i].sh_offset += rounded_size;
+		}
 		section_i++;
 	}
 
@@ -64,9 +76,12 @@ void	inject_decryptor_X86_64(elf_map_t* const map, ubyte* decryptor, uqword decr
 	dprintf(2, "%zx\n", text_vaddr);
 	dprintf(2, "rounded size %zx\n", rounded_size);
 	dprintf(2, "original file size %zx\n",  map->size);
-	dprintf(2, "moving from 0x%zx to 0x%zx, size: %zx\n", (uintptr_t)map->addr + text_offset, (uintptr_t)map->addr + text_offset + rounded_size, map->size - text_offset);
-	ft_memmove(map->addr + text_offset + rounded_size, map->addr + text_offset, map->size - text_offset);
-	ft_memcpy(map->addr + text_offset, decryptor, decryptor_size);
+//	dprintf(2, "moving from 0x%zx to 0x%zx, size: %zx\n", (uintptr_t)map->addr + text_offset, (uintptr_t)map->addr + text_offset + rounded_size, map->size - text_offset);
+	ft_memmove((void*)(header + 1) + rounded_size, (void*)(header + 1), map->size - sizeof(*header));
+	ft_memcpy((void*)(header + 1), decryptor, decryptor_size);
+
+//	ft_memmove((void*)map->addr + text_offset + rounded_size, (void*)map->addr + text_offset, map->size - text_offset);
+//	ft_memcpy((void*)map->addr + text_offset, decryptor, decryptor_size);
 
 	header->e_phoff += rounded_size;
 	header->e_shoff += rounded_size;
