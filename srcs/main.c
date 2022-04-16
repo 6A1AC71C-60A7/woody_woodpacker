@@ -111,6 +111,7 @@ static inline err_t	write_woody_file(void* buff, uqword bufflen)
 			FERROR(EFORMAT_WRAPPER, "write", errno, strerror(errno));
 		else
 			ERROR(__progname ": error: partial write to woody ... Try again.\n");
+		dprintf(2, "nbytes: %zx\n", nbytes);
 		return EWRAPPER;
 	}
 	return SUCCESS;
@@ -170,7 +171,7 @@ int main(int ac, const char* av[])
 	///TODO: Decryptor isn't right yet, so this makes woody crash ...
 	encrypt_chunks(targets_crypt, parse.key, arch.kcrypt);
 
-	write_woody_file(map.addr, map.size + decryptor_size);
+	write_woody_file(map.addr, map.size);
 
 	///TODO: In this situation freeing is irelevant, but if i'll do it anyways i have to handle all the cases ...
 	free(decryptor);

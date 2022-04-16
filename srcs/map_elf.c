@@ -1,4 +1,5 @@
 
+#include <stdio.h>
 #include <wd_types.h>
 #include <wd_error.h>
 #include <woody_woodpacker.h>
@@ -44,6 +45,7 @@ static inline err_t	validate_file(const char* filename, int* const fd, uqword* c
 	}
 
 	*file_size = buff.st_size;
+	dprintf(2, "file size: %zx\n", buff.st_size);
 
 error:
 	return st;
@@ -81,12 +83,13 @@ err_t	map_elf(const char* filename, elf_map_t* const map)
 	if ((st = validate_file(filename, &fd, &map->size)) != SUCCESS)
 		return st;
 
-	if ((map->addr = mmap(NULL, map->size + MAX_PAYLOAD_SIZE, PROT_READ | PROT_WRITE, MAP_FILE | MAP_PRIVATE, fd, 0)) == MAP_FAILED)
+	if ((map->addr = mmap(NULL, map->size + page_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0)) == MAP_FAILED)
 	{
 		FERROR(EFORMAT_WRAPPER, "mmap", errno, strerror(errno));
 		return EWRAPPER;
 	}
-	dprintf(2, "%p\n", map->addr);
+	read(fd, map->addr, map->size);
+	dprintf(2, "%hhx\n", map->addr[map->size + 0x2000 - 1]);
 
 
 	return validate_format(map);

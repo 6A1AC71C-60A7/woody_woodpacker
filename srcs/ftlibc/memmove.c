@@ -11,9 +11,11 @@
 /* ************************************************************************** */
 
 #include <ftlibc.h>
+#include <stdio.h>
 
 void	*ft_memmove(void *dst, const void *src, size_t len)
 {
+	dprintf(2, "%zx\n", len);
 	if (src > dst)
 		ft_memcpy(dst, src, len);
 	else if (dst != src)
