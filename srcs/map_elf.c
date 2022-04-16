@@ -89,8 +89,6 @@ err_t	map_elf(const char* filename, elf_map_t* const map)
 		return EWRAPPER;
 	}
 	read(fd, map->addr, map->size);
-	dprintf(2, "%hhx\n", map->addr[map->size + 0x2000 - 1]);
-
 
 	return validate_format(map);
 }
