@@ -93,9 +93,9 @@ end:
 }
 
 __attribute__ ((always_inline))
-static inline err_t	write_woody_file(void* buff, uqword bufflen)
+static inline err_t	write_woody_file(void* buff, uqword bufflen, udword mode)
 {
-	const int fd = open("woody", O_CREAT | O_RDWR, S_IRWXU);
+	const int fd = open("woody", O_CREAT | O_RDWR, mode);
 
 	if (fd < 0)
 	{
@@ -171,7 +171,7 @@ int main(int ac, const char* av[])
 
 	arch.inject_decryptor(&map, decryptor, decryptor_size);
 
-	write_woody_file(map.addr, map.size);
+	write_woody_file(map.addr, map.size, map.mode);
 
 	///TODO: In this situation freeing is irelevant, but if i'll do it anyways i have to handle all the cases ...
 	free(decryptor);

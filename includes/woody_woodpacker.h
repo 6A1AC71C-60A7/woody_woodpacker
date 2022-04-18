@@ -33,6 +33,7 @@ typedef struct		elf_map
 	uqword			entry_point;
 	ubyte			endianess;
 	ubyte			arch;
+	udword			mode;
 }					elf_map_t;
 
 typedef err_t (*build_decryptor_t)(ubyte** const dest, const parse_t* const in,

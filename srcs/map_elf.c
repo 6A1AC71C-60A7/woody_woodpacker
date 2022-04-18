@@ -14,7 +14,7 @@
 #include <unistd.h> // syscall
 
 __attribute__ ((always_inline))
-static inline err_t	validate_file(const char* filename, int* const fd, uqword* const file_size)
+static inline err_t	validate_file(const char* filename, int* const fd, uqword* const file_size, udword* const mode)
 {
 	err_t st = SUCCESS;
 	struct stat buff;
@@ -45,6 +45,7 @@ static inline err_t	validate_file(const char* filename, int* const fd, uqword* c
 	}
 
 	*file_size = buff.st_size;
+	*mode = buff.st_mode;
 	dprintf(2, "file size: %zx\n", buff.st_size);
 
 error:
@@ -80,7 +81,7 @@ err_t	map_elf(const char* filename, elf_map_t* const map)
 	err_t st = SUCCESS;
 	int fd;
 
-	if ((st = validate_file(filename, &fd, &map->size)) != SUCCESS)
+	if ((st = validate_file(filename, &fd, &map->size, &map->mode)) != SUCCESS)
 		return st;
 
 	if ((map->addr = mmap(NULL, map->size + page_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0)) == MAP_FAILED)
