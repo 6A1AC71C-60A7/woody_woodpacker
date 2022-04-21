@@ -1,9 +1,12 @@
 
+#include <stdio.h>
+#include <woody_woodpacker.h>
 #include <wd_types.h>
 #include <wd_error.h>
 #include <ftlibc.h>
 #include <wd_utils.h>
 #include <wd_crypt.h>
+#include <wd_payloads.h>
 
 #include <stdlib.h> // malloc
 #include <errno.h>  // errno
@@ -20,6 +23,7 @@ static const ubyte woody_msg[] = {
 	'.', ' ', '.', ' ', '.', ' ', '.', 'W'
 };
 
+/* 
 static const ubyte decryptor_x86_64[] = {
 	'\x58', '\x49', '\xC7', '\xC1', '\x02', '\x00', '\x00', '\x00',
 	'\x50', '\x49', '\x0F', '\xAF', '\xC1', '\x48', '\x8D', '\x3C',
@@ -79,7 +83,7 @@ static const ubyte regs_restoration_x86_64[] = {
 	'\x58', '\x5F', '\x5E', '\x5D', '\x5C', '\x5B', '\x5A', '\x59',
 	'\x58'
 };
-
+ */
 #define OP_MOV_IMM_TO_REG '\xb8'
 #define OP_MOV_IMM_TO_REG_SIZE 0xa
 #define OP_REG_RAX '\x48'
@@ -203,6 +207,7 @@ static inline void build_stack_initializer_x86_64(ubyte* const dest, uqword* con
 	while (targets[++amount].start)
 	{
 		*imm64 = (uqword)targets[amount].start;
+		dprintf(2, "%jx\n", (uintmax_t)*imm64);
 		memcpy_offset(dest, op_mov_push, ARRLEN(op_mov_push), offset);
 		*imm64 = targets[amount].nbytes;
 		memcpy_offset(dest, op_mov_push, ARRLEN(op_mov_push), offset);

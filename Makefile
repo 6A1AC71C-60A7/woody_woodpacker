@@ -1,12 +1,13 @@
 NAME		=		woody_woodpacker
 OBJDIR		=		relocs
+PAYLOADDIR	=		payloads
 CC			=		/usr/bin/gcc
 RM			=		/bin/rm
 
 include				srcs.mk
 
-CFLAGS		=		-Wall -Wextra -g3 -fsanitize=address
-IFLAGS		=		-I$(INCDIR)
+CFLAGS		=		-Wall -Wextra -g3 #-fsanitize=address
+IFLAGS		=		-I$(INCDIR) -I$(PAYLOADDIR)
 
 ifeq ($(shell uname -s), Darwin)
     IFLAGS += -Ilib/gnu/elf/include
@@ -18,7 +19,11 @@ OBJS		=		$(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(SRCS))
 all: $(NAME)
 	@:
 
-$(NAME) : $(OBJDIR) $(OBJS) $(HDRS)
+$(PAYLOADDIR)/wd_payloads.h:
+	@$(MAKE) -C payloads NAME=$(@F) $(@F)
+	@echo "MK $@"
+
+$(NAME) : $(OBJDIR) $(OBJS) $(HDRS) $(PAYLOADDIR)/wd_payloads.h
 	@$(CC) -o $(NAME) $(CFLAGS) $(OBJS)
 	@echo LINK $@
 

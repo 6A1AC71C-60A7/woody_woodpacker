@@ -8,6 +8,11 @@ a.out
 woody
 woody_woodpacker
 
+# Payload data
+payloads/*.h
+payloads/bin/
+payloads/objs/
+
 # Local vscode config
 .vscode
 
@@ -16,3 +21,7 @@ gensources.sh
 
 # miscelaneous
 on_test
+
+# clangd
+.cache/
+compile_commands.json

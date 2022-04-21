@@ -48,22 +48,22 @@ decrypt_byte:
 mov rdx, r8
 and rdx, 7
 
-mov r9b, BYTE PTR [rdi + rdx]
+mov r9b, BYTE [rdi + rdx]
 
-sub BYTE PTR [rsi + r8], r9b
+sub BYTE [rsi + r8], r9b
 
 push r9
 push r11
 
 mov cl, dl
-mov r9b, BYTE PTR [rsi + r8]
+mov r9b, BYTE [rsi + r8]
 shr r9b, cl
 
 mov r12b, 8
 sub r12b, dl
 mov cl, r12b
 
-mov r12b, BYTE PTR [rsi + r8]
+mov r12b, BYTE [rsi + r8]
 shl r12b, cl
 
 or r12b, r9b
@@ -71,11 +71,11 @@ or r12b, r9b
 pop r11
 pop r9
 
-mov BYTE PTR [rsi + r8], r12b
+mov BYTE [rsi + r8], r12b
 
-not BYTE PTR [rsi + r8]
+not BYTE [rsi + r8]
 
-xor BYTE PTR [rsi + r8], r9b
+xor BYTE [rsi + r8], r9b
 
 inc r8
 
