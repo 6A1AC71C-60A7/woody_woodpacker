@@ -20,3 +20,4 @@ on_test
 # clangd
 .cache/
 compile_commands.json
+.vimrc

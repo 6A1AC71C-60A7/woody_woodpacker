@@ -37,7 +37,7 @@ all: $(NAME)
 
 $(OBJDIR) $(BINDIR):
 	@echo "MK $@"
-	mkdir -p "$@"
+	@mkdir -p "$@"
 
 $(OBJS_x86_64): ASFLAGS=$(ASFLAGS_x86_64)
 
@@ -46,10 +46,10 @@ $(OBJS_x86): ASFLAGS=$(ASFLAGS_x86)
 $(OBJDIR)/%.o: $(SRCDIR)/%.S | $(OBJDIR)
 	@mkdir -p '$(@D)'
 	@echo "AS $<"
-	$(COMPILE.S) $< -o $@
+	@$(COMPILE.S) $< -o $@
 
 $(BINDIR)/%: $(OBJDIR)/%.o | $(BINDIR)
-	$(COMPILE.o) -o $@ $<
+	@$(COMPILE.o) -o $@ $<
 
 .PHONY: clean
 clean:
@@ -66,7 +66,7 @@ re: fclean all
 $(NAME): $(PAYLOADS_x86_64) Makefile
 	@echo -ne "#pragma once\n\n#include <wd_types.h>\n" > $@
 
-	$(foreach payload, $(TARGET_PAYLOADS), \
+	@$(foreach payload, $(TARGET_PAYLOADS), \
 		echo -ne "\n$(TYPE) $(notdir $(payload))[] = {\n" >> $@; \
 		objdump -d $(payload) \
 		|  grep "^ " | cut -f2 | tr -d ' ' \

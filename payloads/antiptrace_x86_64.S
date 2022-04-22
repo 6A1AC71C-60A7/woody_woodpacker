@@ -1,4 +1,7 @@
+section .text
+global _start
 
+_start:
 ; Source code from hex raw of 'srcs/build_decryptor.c'
 
 mov rax, 157

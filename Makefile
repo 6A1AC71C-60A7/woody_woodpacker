@@ -1,47 +1,76 @@
 NAME		=		woody_woodpacker
 OBJDIR		=		relocs
 PAYLOADDIR	=		payloads
-CC			=		/usr/bin/gcc
-RM			=		/bin/rm
 
+# Compiler and linker
+CC			=		clang
+LD			=		clang
+
+# Sources
 include				srcs.mk
+INCDIR		=		includes
 
-CFLAGS		=		-Wall -Wextra -g3 #-fsanitize=address
+
+OBJS		=		$(SRCS:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
+DEPS		=		$(OBJS:.o=.d)
+
+
+# Flags
+DBGFLAGS	=		-g3 -fsanitize=address
 IFLAGS		=		-I$(INCDIR) -I$(PAYLOADDIR)
+CFLAGS		=		-Wall -Wextra $(IFLAGS)# $(DBGFLAGS)
+DFLAGS		=		-MT $@ -MMD -MP -MF $(OBJDIR)/$*.d
+LDFLAGS		=		$(LIBDIRS:%=-L%)# $(DBGFLAGS)
+#LDLIBS		=		$(LIBARS:lib%.a=-l%)
 
-ifeq ($(shell uname -s), Darwin)
+UNAME		=		$(shell uname -s)
+
+ifeq ($(UNAME), Darwin)
     IFLAGS += -Ilib/gnu/elf/include
 	CFLAGS += -Wno-deprecated-declarations
 endif
 
-OBJS		=		$(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(SRCS))
+# Compiling commands
+COMPILE.c = $(CC) $(DFLAGS) $(CFLAGS) -c
+COMPILE.o = $(LD) $(LDFLAGS)
 
 all: $(NAME)
-	@:
 
-$(PAYLOADDIR)/wd_payloads.h:
-	@$(MAKE) -C payloads NAME=$(@F) $(@F)
-	@echo "MK $@"
-
-$(NAME) : $(OBJDIR) $(OBJS) $(HDRS) $(PAYLOADDIR)/wd_payloads.h
-	@$(CC) -o $(NAME) $(CFLAGS) $(OBJS)
-	@echo LINK $@
-
+# Directories
 $(OBJDIR):
+	@echo "MK $@"
 	@mkdir -p $@
-	@echo MKDIR $@
 
-$(OBJDIR)/%.o : $(SRCDIR)/%.c 
-	@mkdir -p $(shell dirname $@)
-	@$(CC) -c -o $@ $(CFLAGS) $(IFLAGS) $<
-	@echo CC $<
+# Payloads
+$(PAYLOADDIR)/wd_payloads.h: FORCE
+	@echo "MK $@"
+	@$(MAKE) -C payloads NAME=$(@F) $(@F)
+
+# Objects
+$(OBJS): $(OBJDIR)/%.o: $(SRCDIR)/%.c $(OBJDIR)/%.d | $(OBJDIR)
+	@mkdir -p '$(@D)'
+	@echo "CC $<"
+	@$(COMPILE.c) $< -o $@
+
+# Dependencies
+$(DEPS): $(OBJDIR)/%.d:
+include $(wildcard $(DEPS))
+
+# Binaries
+$(NAME) : $(OBJS)
+	@echo "LD $@"
+	@$(COMPILE.o) $^ -o $@ $(LDFLAGS)
 
 clean:
-	@$(RM) -rf $(OBJDIR)
 	@echo RM $(OBJDIR)
+	@$(RM) -rf $(OBJDIR)
 
 fclean: clean
-	@$(RM) -rf $(NAME)
 	@echo RM $(NAME)
+	@$(RM) -rf $(NAME)
 
 re: fclean all
+
+FORCE: ;
+
+.PHONY: clean fclean re FORCE

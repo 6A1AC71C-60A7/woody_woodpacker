@@ -1,16 +1,5 @@
-INCDIR	=	includes
 SRCDIR	=	srcs
 
-HDRS	=\
-$(addprefix includes/,\
-	ftlibc.h\
-	wd_crypt.h\
-	wd_error.h\
-	wd_parse.h\
-	wd_types.h\
-	wd_utils.h\
-	woody_woodpacker.h\
-)
 SRCS	=\
 $(addprefix srcs/,\
 	build_decryptor.c\
