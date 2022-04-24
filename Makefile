@@ -44,7 +44,7 @@ $(OBJDIR):
 # Payloads
 $(PAYLOADDIR)/wd_payloads.h: FORCE
 	@echo "MK $@"
-	@$(MAKE) -C payloads NAME=$(@F) $(@F)
+	@$(MAKE) --quiet -C payloads NAME=$(@F) $(@F)
 
 # Objects
 $(OBJS): $(OBJDIR)/%.o: $(SRCDIR)/%.c $(OBJDIR)/%.d | $(OBJDIR)
@@ -74,3 +74,7 @@ re: fclean all
 FORCE: ;
 
 .PHONY: clean fclean re FORCE
+
+
+# Assign a value to VERBOSE to enable verbose output
+$(VERBOSE).SILENT:

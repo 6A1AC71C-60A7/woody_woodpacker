@@ -21,3 +21,6 @@ on_test
 .cache/
 compile_commands.json
 .vimrc
+
+# gdb
+.gdb_history

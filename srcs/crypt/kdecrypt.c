@@ -44,9 +44,9 @@ void	kdecrypt(const crypt_pair_t* const targets, uqword targets_len, uqword key,
 	 *  +-------------------+        - 'N' is the number of chunks (targets_len)
 	 *  |        ...        |
 	 *  +-------------------+
-	 *  |     nbytes [0]    |
-	 *  +-------------------+
 	 *  |     address [0]   |
+	 *  +-------------------+
+	 *  |     nbytes [0]    |
 	 *  +-------------------+
 	 *  |         N         | <----- Top of the stack
 	 *  +-------------------+
@@ -106,7 +106,7 @@ void	kdecrypt_asm(const crypt_pair_t* const targets, uqword targets_len, uqword 
 		/* %rax = number of qwords of term_msg (term_msg_len / 8) */
 		"mov %4, %%rax\n"
 		"mov $8, %%r8\n"
-		"xor %%rdx, %%rdx\n" 
+		"xor %%rdx, %%rdx\n"
 		"idiv %%r8\n"
 
 		/* push %rax times the term_msg to the stack */

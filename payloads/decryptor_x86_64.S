@@ -1,326 +1,186 @@
+%include "libpayload.S"
+
+%define PAGE_SIZE 0x1000
+%define TERM_MSG_SIZE 24
+
+; filepath string size must be multiples of 8, including the NUL terminator.
+%define maps_filepath "/proc/self/maps"
+%substr maps_filepath_0_8 maps_filepath 1,8
+%substr maps_filepath_0_16 maps_filepath 9,8
+
+%define rmaps_fd r12
+%define rchunk_size r13
+%define rchunk_vaddr r14
+%define rkey_str r15
+
 section .text
+
+extern htoi
+extern next_field
+extern next_line
+extern putnbr
+extern minfo
+extern putminfo
+
 global _start
 
+; registers to preserve: rbx, rsp, rbp, r12-r15
+; cld should be set to forward (0) before entry and upon exit of a function
+
+; rchunk_vaddr: rsi
 _start:
-	pop rax						; n: rax = N
+	mov rchunk_vaddr, rsi			; rchunk_vaddr = rsi
 
-	push rax
+	mov r8, maps_filepath_0_16
+	push r8
+	mov r8, maps_filepath_0_8
+	push r8							; filepath: rsp[16] = maps_filepath
 
-	mov r9, 2					; key_str: rdi = &key
-	imul rax, r9				
-	lea rdi, [rsp + rax * 8]
-	add rdi, 8
+	mov rax, SYS_OPEN				; rmaps_fd = open(filpath, O_RDONLY)
+	mov rdi, rsp
+	mov rsi, O_RDONLY
+	syscall
+	mov rmaps_fd, rax
 
-	pop rax
+	add rsp, 16						; Release filepath: rsp[16]
 
-	xor r10, r10				; iterator: r10 = 0
+	pop rax							; n: rax = N
+	push rax						; Preserve n: rax
+
+	mov r9, 2						; rkey_str = &key
+	imul rax, r9
+	lea rkey_str, [rsp + rax * 8]
+	add rkey_str, 8
 
 decrypt_chunk:
-	pop r11							; chunk_size: r11
-	pop rsi							; chunk_vaddr: rsi
+	pop rchunk_size					; Load rchunk_size
+	pop rchunk_vaddr				; Load rchunk_vaddr
 
-	push rdi
-	push rsi
-	push rax
-	push r8
-	push r9
-	push r10
-	push rcx
-	push rbx
+	push rbx						; Preserve rbx
 
-	mov r8, "lf/maps"
-	push r8
-	mov r8, "/proc/se"
-	push r8
+	sub rsp, BUFFER_SIZE			; buffer_data: rsp[BUFFER_SIZE]
+	mov rdx, rsp					; buffer: rdx = buffer_data
+	mov rdi, rdx					; line: rdi = buffer
+	xor rcx, rcx					; length: rcx = 0
 
-	mov r8, rsi						; chunk_vaddr: r8 = rsi
+	sub rsp, sminfo_size
+	mov rbx, rsp
+	.mfind:
+		mov rsi, rmaps_fd			; fd: esi = rmaps_fd
+		call next_line				; next_line(line: rdi, fd: esi, buffer: rdx, length: rcx)
+		push rdi					; Preserve line
+		push rdx					; Preserve buffer
+		push rcx					; Preserve length
 
-	mov rax, 2						; fd: edi = open("/proc/self/maps", O_RDONLY)
-	mov rdi, rsp
-	mov rsi, 0
-	syscall
-	mov r9d, eax
+		mov rsi, rbx
+		call minfo
 
-	sub rsp, 1024
+		mov edi, STDOUT_FILENO
+		mov rsi, rbx
+		call putminfo
 
-	xor rcx, rcx
-	call next_line
-	push rdi
-	push rcx
+		pop rcx						; Restore length
+		pop rdx						; Restore buffer
+		pop rdi						; Restore line
 
-	push rsi ; DEBUG
-	push rax
-	push rcx
-	push rdi
-	mov rsi, rdi
-	mov rdi, 1
-	mov rdx, rcx
-	mov rax, 1
-	syscall
-	pop rdi
-	pop rcx
-	pop rax
-	pop rsi ; END DEBUG
+		mov al, PROT_EXEC			; bit: al = PROT_EXEC
+		and al, [rbx + protection]
+		test al, al
+		jz .mfind					; skip if not executable
 
-	line:
-		mov sil, ' '				; delim: sil = ' '
-		call next_field				; Skip address field
-		call next_field				; Skip protections field
+		cmp rchunk_vaddr, [rbx + vaddr]
+		jl .mfind					; skip if rchunk_vaddr < segment_vaddr
 
-;		push rdi
-;		mov rdx, 8
-;		mov rsi, rdi
-;;		mov rdi, 1
-;		mov rax, 1
-;;		syscall
-;		pop rdi
-;
-		call convert_hex			; addr: rax = convert_hex(field)
+		mov rax, [rbx + map_end]
+		sub rax, [rbx + map_start]
+		add rax, [rbx + vaddr]		; segment_end: rax = map_end - map_start + vaddr
+		cmp rchunk_vaddr, rax		; skip if rchunk_vaddr >= segment_end
+		jge .mfind
 
-		mov edi, eax
-		mov rax, 60
-		syscall
-		
-		mov sil, ' '
-
-		cmp rax, r8					; if addr == chunk_vaddr
-		je line_break				; break
-
-		pop rcx
-		pop rdi
-		call next_line
-		push rdi
-		push rcx
-
-		jmp line
-
-	line_break:
-		pop rcx
-		pop rdi
-
-		mov sil, '-'
-		call convert_hex
-
-		push rax
-
-		inc rdi
-		dec rcx
-
-		mov sil, ' '
-		call convert_hex
-
-		push rax
-
-		call next_field				; Skip address field
-
-		xor al, al					; prots: al = 0
-		mov rcx, 3					; i: rcx = 3
-		convert_prot:				; while i != 0
-			mov bl, [rdi + rcx]		; c: bl = line[i]
-			cmp bl, '-'
-
-				mov rdx, 1		; len
-				mov rsi, rdi	; str
-				mov edi, 1		; fd
-				mov rax, 1		; write
-				syscall
-				
-			je convert_prot_next	; if c != '-'
-				mov bl, 1			; bit: bl = 1
-				dec cl
-				shl bl, cl			; bit: bl <<= i
-				or al, bl			; prots: al |= bit
-				inc cl
-			convert_prot_next:
-		loop convert_prot			; i: rcx -= 1
+	add rsp, sminfo_size
 
 	mov edi, eax
-	mov rax, 60
+	mov rax, SYS_EXIT
 	syscall
 
-	add rsp, 1024
+	add rsp, BUFFER_SIZE
 
 	pop rbx
-	pop rcx
-	pop r10
-	pop r9
-	pop r8
-	pop rax
-	pop rsi
-	pop rdi
 
-	push rdi						; mprotect(chunk_address, chunk_size, PROT_RWX)
-	push rsi
 	push rdx
-	push rax
-	push rcx
-	push r11
+;	push rcx
 	pushfq
-	mov rdi, rsi; align to page size
-	mov rsi, r11; len
-	mov edx, 7      ; prot
-	mov rax, 10
+	mov rdi, rchunk_vaddr		; TODO: Obtain segment virtual address
+;	and rdi, PAGE_SIZE - 1		; align to page size
+	mov rsi, rchunk_size		; len TODO: Make the whole segment writable
+	mov edx, 7					; prot TODO: Restore old protection
+	mov rax, SYS_MPROTECT
 	syscall
 
-	neg rax
-	mov rdi, rax
-	mov rax, 60
-	syscall
+;	neg rax		; get errno
+;	mov rdi, rax
+;	mov rax, SYS_EXIT
+;	syscall
+
 	popfq
-	pop r11
-	pop rcx
-	pop rax
+;	pop rcx
 	pop rdx
-	pop rsi
-	pop rdi
 
+	pop rax						; n: rax = N
+	push rax					; Preserve N
+
+	xor r10, r10				; chunk_iterator: r10 = 0
 decrypt_term_msg:
 	push r10
-	xor r8, r8
+	xor r8, r8					; data_iterator: r8 = 0
 
 decrypt_byte:
 	mov rdx, r8
-	and rdx, 7
+	and rdx, 7							; key_offset: rdx = data_iterator % 8
 
-	mov r9b, BYTE [rdi + rdx]
+	mov r9b, BYTE [rkey_str + rdx]		; key_c: r9b = key_str[key_offset]
 
-	sub BYTE [rsi + r8], r9b
+	sub BYTE [rchunk_vaddr + r8], r9b	; cipher_text[data_iterator] -= key_c
 
-	push r9
-	push r11
+;	push rchunk_size					; Preserve chunk_size
 
 	mov cl, dl
-	mov r9b, BYTE [rsi + r8]
-	shr r9b, cl
+	rol BYTE [rchunk_vaddr + r8], cl			; ROTL(cipher_text[data_iterator], key_offset)
 
-	mov r12b, 8
-	sub r12b, dl
-	mov cl, r12b
+;	pop rchunk_size
 
-	mov r12b, BYTE [rsi + r8]
-	shl r12b, cl
+	not BYTE [rchunk_vaddr + r8]		; cipher_text[data_iterator] = ~cipher_text[data_iterator]
 
-	or r12b, r9b
+	xor BYTE [rchunk_vaddr + r8], r9b	; cipher_text[data_iterator] ^= key_c
 
-	pop r11
-	pop r9
+	inc r8								; data_iterator: r8 += 1
 
-	mov BYTE [rsi + r8], r12b
+	cmp r8, rchunk_size
+	jb decrypt_byte						; if data_iterator >= rchunk_size
 
-	not BYTE [rsi + r8]
-
-	xor BYTE [rsi + r8], r9b
-
-	inc r8
-
-	cmp r8, r11
-	jb decrypt_byte					; if r8 >= r11
-
-		pop r10
-		inc r10
+		pop r10							; Load chunk_iterator: r10
+		inc r10							; chunk_iterator: r10 += 1
 
 		cmp r10, rax
-		jb decrypt_chunk				; if r10 <= rax
+		jb decrypt_chunk				; if chunk_iterator <= N
 
 			cmp r10, rax
-			jne end							; if r10 == rax
-				inc r10
-				push r10
-				mov r10, 1
-				lea rsi, [rdi + r10 * 8]
-				pop r10
-				mov r11, 24
-				jmp decrypt_term_msg
+			jne end							; if chunk_iterator == N
+				inc r10						; chunk_iterator: r10 += 1
+				push r10					; Preserve chunk_iterator
+				lea rchunk_vaddr, [rchunk_vaddr + 8]	; Load woody string
+				pop r10									; Restore chunk_iterator
+				mov rchunk_size, TERM_MSG_SIZE			; Load woody string len
+				jmp decrypt_term_msg					; Decrypt woody string
 
 end:
-	mov rax, 1
+	mov rax, SYS_WRITE
 	mov rdi, 1
-	mov rdx, 24
+	mov rdx, rchunk_size
 	syscall
 
-	add rsp, 32
+	add rsp, TERM_MSG_SIZE + 1 * 8
 
 	mov rdi, 0
-	mov rax, 60
-	syscall							; temporary exit(0)
-
-next_field:							; line: rdi, delim: sil -> rdi ! rax
-	mov al, sil						; Search for delim
-
-	repne scasb						; Skip until delim
-	repe scasb						; Skip delim
-
-	dec rdi
-	dec rcx
-
-	ret
-
-convert_hex:						; line: rdi, delim: sil -> rax ! rbx, rdx, rcx
-	xor rax, rax					; value: rax = 0
-	xor rbx, rbx					; digit: rbx = 0
-	convert_hex_loop:
-		shl rax, 4					; value: rax *= 16
-		mov bl, [rdi]				; c: bl = *line
-
-		cmp bl, sil
-		je convert_hex_break		; break if c == delim
-
-		cmp bl, '9'
-		jg convert_hex_alpha		; if c <= '9'
-			mov dl, '0'				; Get digit value
-			jmp convert_hex_done
-		convert_hex_alpha:			; else
-			mov dl, 'A'				; Get hex digit value
-		convert_hex_done:
-
-		sub bl, dl
-
-		add rax, rbx				; value: rax += digit
-
-		inc rdi						; line: rdi += 1
-		dec rcx
-		jmp convert_hex_loop
-	convert_hex_break:
-		ret
-
-next_line:              ; rdi: buffer, r9d: fd, buffer_length: rcx ! rdx
-    add rsp, 8
-
-next_line_next:
-    xor rax, rax
-    mov al, `\n`        ; c: al = '\n'
-
-    cld                 ; Go forward
-
-	mov r10, rcx
-
-	test r10, r10
-	jz next_line_read
-
-    repne scasb         ; Search for newline
-    je next_line_found
-
-    mov rsi, rdi
-    sub rsi, rsp        ; offset: rsi = line_end - buffer
-
-    mov rax, 8
-    neg rsi
-    mov edi, r9d
-    mov rdx, 1
-    syscall             ; lseek(fd, -current_line_offset, SEEK_CURR)
-
-next_line_read:
-    mov rax, 0
-    mov edi, r9d
-    mov rsi, rsp        ; overwrite the previous read
-    mov rdx, 1024
-    syscall             ; i: rcx = read(fd, buffer, size)
-    mov rcx, rax
-    mov rdi, rsp
-
-	test r10, r10
-    jnz next_line_next
-
-next_line_found:
-    sub rsp, 8
-    ret
+	mov rax, SYS_EXIT
+	syscall							; TODO: Remove temporary exit(0)
