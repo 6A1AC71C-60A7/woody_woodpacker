@@ -6,7 +6,7 @@ TYPE=const ubyte
 
 # Directories
 INCDIR=includes
-SRCDIR=.
+SRCDIR=srcs
 LIBDIR=lib
 
 OBJDIR=relocs
