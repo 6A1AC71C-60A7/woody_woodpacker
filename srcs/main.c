@@ -142,7 +142,7 @@ int main(int ac, const char* av[])
 
 	///NOTE: Uncomment for decryption and/or payload testing
 	//test_crypt_payload();
-	//test_crypt();	
+	//test_crypt();
 //return 0;
 
 	if (ac == 1 || user_asks_for_help(*av) == true)
@@ -161,7 +161,7 @@ int main(int ac, const char* av[])
 
 	if ((st = handle_key(&parse)) != SUCCESS)
 		goto end;
-	
+
 	///TODO: Decryptor isn't right yet, so this makes woody crash ...
 	encrypt_chunks(targets_crypt, parse.key, arch.kcrypt);
 

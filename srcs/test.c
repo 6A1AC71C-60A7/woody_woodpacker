@@ -19,7 +19,7 @@ void test_crypt()
 		'.', ' ', '.', '\n', 0, 0, 0, 0,
 		'O', 'O', 'D', 'Y', '.', ' ', '.', ' ',
 		'.', ' ', '.', ' ', '.', ' ', '.', 'W'
-	}; 
+	};
 
 	crypt_pair_t targets[] = {
 		{
@@ -51,7 +51,7 @@ void test_crypt()
 	printf("[MSG1]: %s", arr1);
 	printf("[MSG2]: %s", arr2);
 	printf("[MSG3]: %s", arr3);
- 
+
 }
 
 // useful if a symbol is needed to put a breakpoint
@@ -83,7 +83,7 @@ void test_crypt_payload()
 		},
 		{
 			.start = 0,
-			.nbytes = 0	
+			.nbytes = 0
 		}
 	};
 
@@ -114,8 +114,8 @@ void test_crypt_payload()
 		perror("open");
 	write(fd, mem, payload_len);
 
-	((void (*)())mem)();
-	//exec_payload(mem);
+	//((void (*)())mem)();
+	exec_payload(mem);
 
 	printf("[MSG1 PLAINTEXT]: %s", arr1);
 	printf("[MSG2 PLAINTEXT]: %s", arr2);

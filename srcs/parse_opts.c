@@ -1,6 +1,6 @@
 
 #include <wd_types.h>
-#include <wd_error.h> 
+#include <wd_error.h>
 #include <wd_utils.h>
 #include <ftlibc.h>
 
@@ -63,7 +63,7 @@ static bool	handle_data_arg(const char** arg, parse_t* const parse)
 static bool	handle_key_arg(const char** arg, parse_t* const parse)
 {
 	const uqword lenght = MAX(ft_strlen(*arg), sizeof(parse->key));
-	ft_memcpy((void*)&parse->key, arg, lenght);
+	ft_memcpy((void*)&parse->key, *arg, lenght);
 	return true;
 }
 
@@ -77,7 +77,7 @@ static inline bool	opt_arg_is_present(const char** av)
 	}
 	return true;
 }
- 
+
 static const struct
 {
 	char*			s_opt;
@@ -125,7 +125,7 @@ static const struct
 
 /**
  * @brief Parse user options and makes @p av point to <target>.
- * 
+ *
  * @param av A pointer to the vector of arguments given by the user.
  * @param parse A struct where the parsed data will be stored.
  */

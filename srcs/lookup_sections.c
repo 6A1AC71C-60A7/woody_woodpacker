@@ -1,4 +1,5 @@
 
+#include "wd_types.h"
 #include <stdio.h>
 #include <woody_woodpacker.h>
 #include <ftlibc.h>
@@ -9,7 +10,7 @@
 /**
  * @brief Fill @p target_crypt and @p target_decrypt arrays
  * with the start address and sizes of the sections to infect.
- * 
+ *
  * @param in Struct holding data provided by the user.
  * @param map Struct mapping an elf file.
  * @param target_crypt Array of structs that will be filled on return.
@@ -68,7 +69,6 @@ err_t lookup_sections_X86_64(const parse_t* const in, const elf_map_t* map,
 				amount++;
 			}
 		}
-
 	}
 	return SUCCESS;
 }

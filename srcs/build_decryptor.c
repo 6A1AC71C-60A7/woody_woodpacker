@@ -19,71 +19,10 @@
  */
 static const ubyte woody_msg[] = {
 	'.', ' ', '.', '\n', '\0', '\0','\0', '\0',
-	'O', 'O', 'D', 'Y', '.', ' ', '.', ' ', 	
+	'O', 'O', 'D', 'Y', '.', ' ', '.', ' ',
 	'.', ' ', '.', ' ', '.', ' ', '.', 'W'
 };
 
-/* 
-static const ubyte decryptor_x86_64[] = {
-	'\x58', '\x49', '\xC7', '\xC1', '\x02', '\x00', '\x00', '\x00',
-	'\x50', '\x49', '\x0F', '\xAF', '\xC1', '\x48', '\x8D', '\x3C',
-	'\xC4', '\x48', '\x83', '\xC7', '\x08', '\x58', '\x4D', '\x31',
-	'\xD2', '\x41', '\x5B', '\x5E', '\x57', '\x56', '\x52', '\x50',
-	'\x51', '\x41', '\x53', '\x9C', '\x48', '\x89', '\xF7', '\x4C',
-	'\x89', '\xDE', '\xBA', '\x07', '\x00', '\x00', '\x00', '\x48',
-	'\xC7', '\xC0', '\x0A', '\x00', '\x00', '\x00', '\x0F', '\x05',
-	'\x9D', '\x41', '\x5B', '\x59', '\x58', '\x5A', '\x5E', '\x5F',
-	'\x41', '\x52', '\x4D', '\x31', '\xC0', '\x4C', '\x89', '\xC2',
-	'\x48', '\x83', '\xE2', '\x07', '\x44', '\x8A', '\x0C', '\x17',
-	'\x46', '\x28', '\x0C', '\x06', '\x41', '\x51', '\x41', '\x53',
-	'\x88', '\xD1', '\x46', '\x8A', '\x0C', '\x06', '\x41', '\xD2',
-	'\xE9', '\x41', '\xB4', '\x08', '\x41', '\x28', '\xD4', '\x44',
-	'\x88', '\xE1', '\x46', '\x8A', '\x24', '\x06', '\x41', '\xD2',
-	'\xE4', '\x45', '\x08', '\xCC', '\x41', '\x5B', '\x41', '\x59',
-	'\x46', '\x88', '\x24', '\x06', '\x42', '\xF6', '\x14', '\x06',
-	'\x46', '\x30', '\x0C', '\x06', '\x49', '\xFF', '\xC0', '\x4D',
-	'\x39', '\xD8', '\x72', '\xB9', '\x41', '\x5A', '\x49', '\xFF',
-	'\xC2', '\x49', '\x39', '\xC2', '\x72', '\x83', '\x49', '\x39',
-	'\xC2', '\x75', '\x1B', '\x49', '\xFF', '\xC2', '\x41', '\x52',
-	'\x49', '\xC7', '\xC2', '\x01', '\x00', '\x00', '\x00', '\x4A',
-	'\x8D', '\x34', '\xD7', '\x41', '\x5A', '\x49', '\xC7', '\xC3',
-	'\x18', '\x00', '\x00', '\x00', '\xEB', '\x8A', '\x48', '\xC7',
-	'\xC0', '\x01', '\x00', '\x00', '\x00', '\x48', '\xC7', '\xC7',
-	'\x01', '\x00', '\x00', '\x00', '\x48', '\xC7', '\xC2', '\x18',
-	'\x00', '\x00', '\x00', '\x0F', '\x05', '\x48', '\x83', '\xC4',
-	'\x20'
-};
-
-/// prctl(PR_SET_DUMPABLE, 0, 0, 0, 0); if (ptrace(PTRACE_TRACEME, 0, 1, 0) == -1) exit(0);
-static const ubyte antiptrace_x86_64[] =  {
-	0x48, 0xC7, 0xC0, 0x9D, 0x00, 0x00, 0x00, 0x48, 0xC7, 0xC7, 0x04,
-	0x00, 0x00, 0x00, 0x48, 0xC7, 0xC6, 0x00, 0x00, 0x00, 0x00, 0x48,
-	0xC7, 0xC2, 0x00, 0x00, 0x00, 0x00, 0x48, 0xC7, 0xC1, 0x00, 0x00,
-	0x00, 0x00, 0x49, 0xC7, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x0F, 0x05,
-	0x48, 0xC7, 0xC0, 0x65, 0x00, 0x00, 0x00, 0x48, 0xC7, 0xC7, 0x00,
-	0x00, 0x00, 0x00, 0x48, 0xC7, 0xC6, 0x00, 0x00, 0x00, 0x00, 0x48,
-	0xC7, 0xC2, 0x01, 0x00, 0x00, 0x00, 0x48, 0xC7, 0xC1, 0x00, 0x00,
-	0x00, 0x00, 0x0F, 0x05, 0x48, 0x83, 0xF8, 0xFF, 0x75, 0x10, 0x48,
-	0xC7, 0xC0, 0x3C, 0x00, 0x00, 0x00, 0x48, 0xC7, 0xC7, 0x00, 0x00,
-	0x00, 0x00, 0x0F, 0x05
-};
-
-/// push regs + flags
-static const ubyte regs_preservation_x86_64[] = {
-	'\x50', '\x51', '\x52', '\x53', '\x54', '\x55', '\x56', '\x57',
-	'\x41', '\x50', '\x41', '\x51', '\x41', '\x52', '\x41', '\x53',
-	'\x41', '\x54', '\x41', '\x55', '\x41', '\x56', '\x41', '\x57',
-	'\x9C'
-};
-
-/// pop regs + flags
-static const ubyte regs_restoration_x86_64[] = {
-	'\x9D', '\x41', '\x5F', '\x41', '\x5E', '\x41', '\x5D', '\x41',
-	'\x5C', '\x41', '\x5B', '\x41', '\x5A', '\x41', '\x59', '\x41',
-	'\x58', '\x5F', '\x5E', '\x5D', '\x5C', '\x5B', '\x5A', '\x59',
-	'\x58'
-};
- */
 #define OP_MOV_IMM_TO_REG '\xb8'
 #define OP_MOV_IMM_TO_REG_SIZE 0xa
 #define OP_REG_RAX '\x48'
@@ -96,6 +35,12 @@ static const ubyte regs_restoration_x86_64[] = {
 #define OP_ADD_SIZE 0x4
 #define OP_ADD_SIZE_OPERAND '\x48'
 #define OP_ADD_TO_RSP '\xC4'
+
+#define OP_SUB '\x83'
+#define OP_SUB_SIZE 0x4
+#define OP_SUB_SIZE_OPERAND '\x48'
+#define OP_SUB_TO_RSP '\xEC'
+
 #define OP_RETN '\xC3'
 #define OP_RETN_SIZE 0x1
 #define OP_RETF '\xCB'
@@ -127,7 +72,7 @@ static inline uqword get_decryptor_size_x86_64(const parse_t* const in, const cr
 
 	if (in->opts & O_ANTIPTRCE)
 		size += ARRLEN(antiptrace_x86_64);
-	
+
 	if (in->opts & O_APPENDDAT)
 		size += *(uqword*)in->data;
 
@@ -156,16 +101,16 @@ static inline void push_entry_point(ubyte* const dest, uqword* const offset, uqw
 
 	register udword* const imm32 = (udword*)(op_mov_mem_to_rsp + 3);
 
-	const ubyte op_add_4_to_rsp[OP_ADD_SIZE] = {
-		OP_ADD_SIZE_OPERAND, OP_ADD, OP_ADD_TO_RSP, 0x4
+	const ubyte op_sub_4_to_rsp[OP_SUB_SIZE] = {
+		OP_SUB_SIZE_OPERAND, OP_SUB, OP_SUB_TO_RSP, 0x4
 	};
 
 	*imm32 = ep[0];
 	memcpy_offset(dest, op_mov_mem_to_rsp, ARRLEN(op_mov_mem_to_rsp), offset);
-	memcpy_offset(dest, op_add_4_to_rsp, ARRLEN(op_add_4_to_rsp), offset);
+	memcpy_offset(dest, op_sub_4_to_rsp, ARRLEN(op_sub_4_to_rsp), offset);
 	*imm32 = ep[1];
 	memcpy_offset(dest, op_mov_mem_to_rsp, ARRLEN(op_mov_mem_to_rsp), offset);
-	memcpy_offset(dest, op_add_4_to_rsp, ARRLEN(op_add_4_to_rsp), offset);
+	memcpy_offset(dest, op_sub_4_to_rsp, ARRLEN(op_sub_4_to_rsp), offset);
 }
 
 __attribute__ ((always_inline))
@@ -188,7 +133,14 @@ static inline void build_stack_initializer_x86_64(ubyte* const dest, uqword* con
 	ubyte encrypted_woody_msg[ARRLEN(woody_msg)];
 
 	ft_memcpy(encrypted_woody_msg, woody_msg, ARRLEN(encrypted_woody_msg));
+
+	for (uqword i = 0; i < ARRLEN(woody_msg); i++)
+		dprintf(2, "%02hhx%c", encrypted_woody_msg[i], i != ARRLEN(woody_msg) - 1 ? ' ' : '\n');
+
 	kcrypt_X86_64(encrypted_woody_msg, ARRLEN(encrypted_woody_msg), key);
+
+	for (uqword i = 0; i < ARRLEN(woody_msg); i++)
+		dprintf(2, "%02hhx%c", encrypted_woody_msg[i], i != ARRLEN(woody_msg) - 1 ? ' ' : '\n');
 
 	/* Push the (encrypted) ". . . .WOODY. . . ." string */
 	for (uqword i = 0 ; i < ARRLEN(encrypted_woody_msg) ; i += sizeof(uqword))
@@ -207,9 +159,10 @@ static inline void build_stack_initializer_x86_64(ubyte* const dest, uqword* con
 	while (targets[++amount].start)
 	{
 		*imm64 = (uqword)targets[amount].start;
-		dprintf(2, "%jx\n", (uintmax_t)*imm64);
+		dprintf(2, "pushing chunk_vaddr: %jx\n", (uintmax_t)*imm64);
 		memcpy_offset(dest, op_mov_push, ARRLEN(op_mov_push), offset);
 		*imm64 = targets[amount].nbytes;
+		dprintf(2, "pushing chunk_size: %jx\n", (uintmax_t)*imm64);
 		memcpy_offset(dest, op_mov_push, ARRLEN(op_mov_push), offset);
 	}
 
@@ -220,7 +173,7 @@ static inline void build_stack_initializer_x86_64(ubyte* const dest, uqword* con
 
 /**
  * @brief Builds the woody's decryptor using user's input.
- * 
+ *
  * @param dest On return, will point to the builded decryptor.
  * @param in A struct holding the input given by the user.
  * @param targets An array of structs holding the location and

@@ -3,7 +3,7 @@
 
 /**
  * @brief A cipher algorithm.
- * 
+ *
  * @param plaintext A pointer to the data to be encrypted.
  * @param plaintext_len The lenght in bytes of the data to be encrypted.
  * @param key 64 bit key used for encryption/decryption.
@@ -16,10 +16,12 @@ void	kcrypt_X86_64(ubyte* const plaintext, uqword plaintext_len, uqword key)
 
 	for (uqword offset = 0 ; offset < plaintext_len ; offset++)
 	{
-		plaintext[offset] ^= bkey[offset % sizeof(key)];
+		char key_c = bkey[offset % sizeof(key)];
+
+		plaintext[offset] ^= key_c;
 		plaintext[offset] = ~plaintext[offset];
 		plaintext[offset] = ROTR(plaintext[offset], offset % sizeof(key));
-		plaintext[offset] += bkey[offset % sizeof(key)];
+		plaintext[offset] += key_c;
 	}
 
 #else
@@ -48,23 +50,8 @@ void	kcrypt_X86_64(ubyte* const plaintext, uqword plaintext_len, uqword key)
 		/* plaintext[offset] = ~plaintext[offset] */
 		"notb (%%rdi,%%r8,1)\n"
 
-		/* #define ROTR(x, n) ( ((x) << (n)) | ((x) >> (8 - (n))) ) */
-		/* %r9 = x << n */
 		"movb %%dl, %%cl\n"
-		"movb (%%rdi,%%r8,1), %%r9b\n"
-		"shlb %%cl, %%r9b\n"
-		/* %rcx = 8 - n */
-		"movb $8, %%r10b\n"
-		"subb %%dl, %%r10b\n"
-		"movb %%r10b, %%cl\n"
-		/* %r10 = x >> (8 - n) */
-		"movb (%%rdi,%%r8,1), %%r10b\n"
-		"shrb %%cl, %%r10b\n"
-		/* %r10 |= %r9 */
-		"orb %%r9b, %%r10b\n"
-
-		/* plaintext[offset] = %r10 */
-		"movb %%r10b, (%%rdi,%%r8,1)\n"	
+		"rorb %%cl, (%%rdi,%%r8,1)\n"
 
 		/* plaintext[offset] += ((*ubyte)&key)[offset % 8] */
 		"addb %%r11b, (%%rdi,%%r8,1)\n"
