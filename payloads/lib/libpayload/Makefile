@@ -16,6 +16,7 @@ ARFLAGS	=	rcs
 # Compiling commands
 COMPILE.S = $(AS) $(ASFLAGS)
 
+HDRS	=	$(adpprefix $(INCDIR)/, $(addsuffix .S, libpayload syscall))
 SRCS	=	$(addprefix $(SRCDIR)/, $(addsuffix .S, \
 	htoi \
 	itoh \
@@ -37,7 +38,7 @@ $(OBJDIR):
 	@printf "%-3s $@\n" MK
 	@mkdir -p $(OBJDIR)
 
-$(OBJDIR)/%.o:	$(SRCDIR)/%.S | $(OBJDIR)
+$(OBJDIR)/%.o:	$(SRCDIR)/%.S $(HDRS) | $(OBJDIR)
 	@mkdir -p '$(@D)'
 	@printf '%-3s %s\n' AS "$<"
 	$(COMPILE.S) $< -o $@

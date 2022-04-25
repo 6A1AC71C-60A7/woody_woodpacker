@@ -21,6 +21,7 @@ LIBARS=$(notdir $(LIBS))
 
 # Sources
 INCS = $(LIBINCS) $(INCDIR)
+HDRS = $(addprefix $(INCDIR)/, payloads.S)
 PAYLOADS=antiptrace decryptor regs_preservation regs_restoration
 ARCHS=x86_64 x86
 
@@ -76,7 +77,7 @@ $(OBJS_x86_64): ASFLAGS+=$(ASFLAGS_x86_64)
 
 $(OBJS_x86): ASFLAGS+=$(ASFLAGS_x86)
 
-$(OBJDIR)/%.o: $(SRCDIR)/%.S | $(OBJDIR)
+$(OBJDIR)/%.o: $(SRCDIR)/%.S $(HDRS) | $(OBJDIR)
 	@mkdir -p '$(@D)'
 	@echo "AS $<"
 	$(COMPILE.S) $< -o $@
