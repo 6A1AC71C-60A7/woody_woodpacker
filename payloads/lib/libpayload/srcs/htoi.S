@@ -18,9 +18,9 @@ htoi:
 	shl rax, 4						; value: rax *= 16
 
 	cmp bl, '9'
-	setle dl							; base_value: dl = bl <= '9' ? '0' : 'A' - 10
+	setle dl							; base_value: dl = bl <= '9' ? '0' : 'a' - 10
 	dec dl
-	and dl, 'a' - '0' + 10
+	and dl, 'a' - '0' - 10
 	add dl, '0'
 
 	sub bl, dl						; digit: bl -= base_value
