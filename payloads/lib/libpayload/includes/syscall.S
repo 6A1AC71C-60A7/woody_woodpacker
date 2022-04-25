@@ -27,4 +27,15 @@
 	%define PROT_WRITE		0x2
 	%define PROT_EXEC		0x4
 	%define PROT_NONE		0x0
+
+	%define PROT_R			PROT_READ
+	%define PROT_W			PROT_WRITE
+	%define PROT_X			PROT_EXEC
+
+	%define PROT_RW			PROT_R | PROT_W
+	%define PROT_RX			PROT_R | PROT_X
+
+	%define PROT_WX			PROT_W | PROT_X
+
+	%define PROT_RWX		PROT_R | PROT_W | PROT_X
 %endif
