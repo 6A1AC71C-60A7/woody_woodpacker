@@ -20,6 +20,7 @@ SRCS	=	$(addprefix $(SRCDIR)/, $(addsuffix .S, \
 	htoi \
 	itoh \
 	itop \
+	mfind \
 	minfo \
 	next_field \
 	next_line \

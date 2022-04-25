@@ -6,10 +6,10 @@
 	%define BUFFER_SIZE 0x400
 
 	struc	sminfo
-		map_start:	resq	1
-		map_end:	resq	1
-		vaddr:		resq	1
-		protection:	resb	1
+		.start:	resq	1
+		.end:	resq	1
+		.vaddr:	resq	1
+		.prot:	resb	1
 	endstruc
 
 %endif

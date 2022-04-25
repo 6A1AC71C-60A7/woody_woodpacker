@@ -1,138 +1,81 @@
 %include "libpayload.S"
-
-%define PAGE_SIZE 0x1000
-%define TERM_MSG_SIZE 24
-
-; filepath string size must be multiples of 8, including the NUL terminator.
-%define maps_filepath "/proc/self/maps"
-%substr maps_filepath_0_8 maps_filepath 1,8
-%substr maps_filepath_0_16 maps_filepath 9,8
-
-%define rmaps_fd r12
-%define rchunk_size r13
-%define rchunk_vaddr r14
-%define rkey_str r15
+%include "payloads.S"
 
 section .text
 
 extern htoi
 extern next_field
 extern next_line
-extern putnbr
 extern minfo
 extern putminfo
+extern mfind
+extern putnbr
 
 global _start
 
 ; registers to preserve: rbx, rsp, rbp, r12-r15
 ; cld should be set to forward (0) before entry and upon exit of a function
 
-; rchunk_vaddr: rsi
 _start:
-	mov rchunk_vaddr, rsi			; rchunk_vaddr = rsi
+	pop rn							; rn = N
 
-	mov r8, maps_filepath_0_16
+	mov rchunk, rsp					; rchunk = chunks
+
+	sub rsp, BUFFER_SIZE
+	mov rbuffer, rsp				; rbuffer = rsp[BUFFER_SIZE]
+
+	sub rsp, sminfo_size
+	mov rsminfo, rsp				; rsminfo = rsp[sminfo_size]
+
+	mov r8, maps_filepath_8_16
 	push r8
 	mov r8, maps_filepath_0_8
 	push r8							; filepath: rsp[16] = maps_filepath
 
-	mov rax, SYS_OPEN				; rmaps_fd = open(filpath, O_RDONLY)
+	mov rax, SYS_OPEN
 	mov rdi, rsp
 	mov rsi, O_RDONLY
 	syscall
-	mov rmaps_fd, rax
+	mov rmaps_fd, rax				; rmaps_fd = open(filpath, O_RDONLY)
 
 	add rsp, 16						; Release filepath: rsp[16]
 
-	pop rax							; n: rax = N
-	push rax						; Preserve n: rax
+	mov rax, rn
+	shl rax, 4						; key_offset: rax = n * 16
 
-	mov r9, 2						; rkey_str = &key
-	imul rax, r9
-	lea rkey_str, [rsp + rax * 8]
-	add rkey_str, 8
+	lea rkey_str, [rchunk + rax]	; key_str = chunks[key_offset]
+
+	xor rcx, rcx					; length: rcx = 0
+	mov rdi, rbuffer				; line: rdi = rbuffer
 
 decrypt_chunk:
-	pop rchunk_size					; Load rchunk_size
-	pop rchunk_vaddr				; Load rchunk_vaddr
+	mov rdx, rbuffer				; buffer: rdx = rbuffer
+	mov rsi, rmaps_fd				; fd: rsi = rmaps_fd
+	mov r8, rsminfo
+	mov r9, [rchunk + schunk.vaddr]
+	mov r10b, 0						; no filter
+	call mfind						; mfind(line, fd, buffer, sminfo, vaddr, filter)
 
-	push rbx						; Preserve rbx
-
-	sub rsp, BUFFER_SIZE			; buffer_data: rsp[BUFFER_SIZE]
-	mov rdx, rsp					; buffer: rdx = buffer_data
-	mov rdi, rdx					; line: rdi = buffer
-	xor rcx, rcx					; length: rcx = 0
-
-	sub rsp, sminfo_size
-	mov rbx, rsp
-	.mfind:
-		mov rsi, rmaps_fd			; fd: esi = rmaps_fd
-		call next_line				; next_line(line: rdi, fd: esi, buffer: rdx, length: rcx)
-		push rdi					; Preserve line
-		push rdx					; Preserve buffer
-		push rcx					; Preserve length
-
-		mov rsi, rbx
-		call minfo
-
-		mov edi, STDOUT_FILENO
-		mov rsi, rbx
-		call putminfo
-
-		pop rcx						; Restore length
-		pop rdx						; Restore buffer
-		pop rdi						; Restore line
-
-		mov al, PROT_EXEC			; bit: al = PROT_EXEC
-		and al, [rbx + protection]
-		test al, al
-		jz .mfind					; skip if not executable
-
-		cmp rchunk_vaddr, [rbx + vaddr]
-		jl .mfind					; skip if rchunk_vaddr < segment_vaddr
-
-		mov rax, [rbx + map_end]
-		sub rax, [rbx + map_start]
-		add rax, [rbx + vaddr]		; segment_end: rax = map_end - map_start + vaddr
-		cmp rchunk_vaddr, rax		; skip if rchunk_vaddr >= segment_end
-		jge .mfind
-
-	add rsp, sminfo_size
-
-	mov edi, eax
-	mov rax, SYS_EXIT
-	syscall
-
-	add rsp, BUFFER_SIZE
-
-	pop rbx
+	mov rax, [rchunk + schunk.vaddr]
+	sub rax, [rsminfo + sminfo.vaddr]
+	add rax, [rsminfo + sminfo.start]
+	mov [rchunk + schunk.vaddr], rax
 
 	push rdx
-;	push rcx
-	pushfq
-	mov rdi, rchunk_vaddr		; TODO: Obtain segment virtual address
-;	and rdi, PAGE_SIZE - 1		; align to page size
-	mov rsi, rchunk_size		; len TODO: Make the whole segment writable
-	mov edx, 7					; prot TODO: Restore old protection
-	mov rax, SYS_MPROTECT
+	push rcx
+	push rdi
+	mov rdi, [rsminfo + sminfo.start]
+	mov rsi, [rsminfo + sminfo.end]
+	sub rsi, rdi
+	mov edx, 7							; prot TODO: Restore old protection
+	mov rax, SYS_MPROTECT				; mprotect(map_start, map_end - map_start, PROT_RWX)
 	syscall
-
-;	neg rax		; get errno
-;	mov rdi, rax
-;	mov rax, SYS_EXIT
-;	syscall
-
-	popfq
-;	pop rcx
+	pop rdi
+	pop rcx
 	pop rdx
 
-	pop rax						; n: rax = N
-	push rax					; Preserve N
-
-	xor r10, r10				; chunk_iterator: r10 = 0
 decrypt_term_msg:
-	push r10
-	xor r8, r8					; data_iterator: r8 = 0
+	xor r8, r8							; data_iterator: r8 = 0
 
 decrypt_byte:
 	mov rdx, r8
@@ -140,47 +83,85 @@ decrypt_byte:
 
 	mov r9b, BYTE [rkey_str + rdx]		; key_c: r9b = key_str[key_offset]
 
-	sub BYTE [rchunk_vaddr + r8], r9b	; cipher_text[data_iterator] -= key_c
+	mov r11, [rchunk + schunk.vaddr]
+	sub BYTE [r11 + r8], r9b			; cipher_text[data_iterator] -= key_c
 
-;	push rchunk_size					; Preserve chunk_size
-
+	push rcx
 	mov cl, dl
-	rol BYTE [rchunk_vaddr + r8], cl			; ROTL(cipher_text[data_iterator], key_offset)
+	rol BYTE [r11 + r8], cl			; ROTL(cipher_text[data_iterator], key_offset)
+	pop rcx
 
-;	pop rchunk_size
+	not BYTE [r11 + r8]					; cipher_text[data_iterator] = ~cipher_text[data_iterator]
 
-	not BYTE [rchunk_vaddr + r8]		; cipher_text[data_iterator] = ~cipher_text[data_iterator]
-
-	xor BYTE [rchunk_vaddr + r8], r9b	; cipher_text[data_iterator] ^= key_c
+	xor BYTE [r11 + r8], r9b			; cipher_text[data_iterator] ^= key_c
 
 	inc r8								; data_iterator: r8 += 1
 
-	cmp r8, rchunk_size
-	jb decrypt_byte						; if data_iterator >= rchunk_size
+	cmp r8, [rchunk + schunk.size]
+	jb decrypt_byte						; if data_iterator >= chunk_size
+		add rchunk, schunk_size			; rchunk += schunk_size
 
-		pop r10							; Load chunk_iterator: r10
-		inc r10							; chunk_iterator: r10 += 1
+		add rcx, rdi
+		sub rcx, rbuffer				; length: rcx = line_end - buffer_data
+		mov rdi, rbuffer				; line: rdi = buffer
 
-		cmp r10, rax
-		jb decrypt_chunk				; if chunk_iterator <= N
+		dec rn
+		js end							; if rn >= 0
+			test rn, rn
+			jnz decrypt_chunk			; if chunk_iterator == 0
+				lea rax, [rchunk + 8]
+				sub rchunk, 16			;
+				mov [rchunk + schunk.vaddr], rax
+				mov QWORD [rchunk + schunk.size], TERM_MSG_SIZE
 
-			cmp r10, rax
-			jne end							; if chunk_iterator == N
-				inc r10						; chunk_iterator: r10 += 1
-				push r10					; Preserve chunk_iterator
-				lea rchunk_vaddr, [rchunk_vaddr + 8]	; Load woody string
-				pop r10									; Restore chunk_iterator
-				mov rchunk_size, TERM_MSG_SIZE			; Load woody string len
-				jmp decrypt_term_msg					; Decrypt woody string
+				jmp decrypt_term_msg	; Decrypt woody string
 
 end:
+	mov r9, [rchunk + 8 + TERM_MSG_SIZE + 18 * 8]	; Load real entrypoint pointer
+
+	push rdi
+	push rsi
+	push rcx
+
+	mov edi, STDOUT_FILENO
+	mov rsi, r9
+	mov dl, `\n`
+	call putnbr
+
+	pop rcx
+	pop rsi
+	pop rdi
+
+	push r9							; Preserve entrypoint
+
+	mov rdx, rbuffer				; buffer: rdx = rbuffer
+	mov rsi, rmaps_fd				; fd: rsi = rmaps_fd
+	mov r8, rsminfo
+	mov r10b, PROT_EXEC
+	call mfind
+
+	mov edi, STDOUT_FILENO
+	mov rsi, rsminfo
+	call putminfo
+
+	pop r9							; Restore entrypoint
+
+	sub r9, [rsminfo + sminfo.vaddr]
+	add r9, [rsminfo + sminfo.start]	; Translate entrypoint address
+
+	mov [rchunk + 8 + TERM_MSG_SIZE + 18 * 8], r9	; Overwrite entrypoint
+
+	mov edi, STDOUT_FILENO
+	mov rsi, r9
+	mov dl, `\n`
+	call putnbr
+
+	mov rsp, rchunk
+
 	mov rax, SYS_WRITE
-	mov rdi, 1
-	mov rdx, rchunk_size
-	syscall
+	mov rdi, STDOUT_FILENO
+	lea rsi, [rchunk + 8]
+	mov rdx, TERM_MSG_SIZE
+	syscall								; write(STDOUT_FILENO, chunk_vaddr, chunk_size)
 
-	add rsp, TERM_MSG_SIZE + 1 * 8
-
-	mov rdi, 0
-	mov rax, SYS_EXIT
-	syscall							; TODO: Remove temporary exit(0)
+	add rsp, 8 + TERM_MSG_SIZE
