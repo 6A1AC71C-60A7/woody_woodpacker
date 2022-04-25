@@ -17,9 +17,9 @@ itoh:
 		setle r10b
 		dec r10b
 		and r10b, 'a' - '0' - 10
-		add r10b, '0'				; base_value: r10b = digit <= 9 ? '0' : 'A' - 10
+		add r10b, '0'				; base: r10b = digit <= 9 ? '0' : 'A' - 10
 
-		add r8b, r10b				; digit: sil += base_value
+		add r8b, r10b				; digit: sil += base
 		mov [rdi + rcx], r8b		; rdi[i] = digit
 
 		shr rsi, 4					; number: rsi /= 0x10

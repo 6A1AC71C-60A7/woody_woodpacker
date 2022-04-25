@@ -19,35 +19,35 @@ mfind:
 	mov rvaddr, r9
 
 .next:
-	call next_line				; next_line(line: rdi, fd: esi, buffer: rdx, length: rcx)
+	call next_line						; next_line(line: rdi, fd: esi, buffer: rdx, length: rcx)
 
-	push rdi					; Preserve line
-	push rsi					; Preserve fd
-	push rdx					; Preserve buffer
-	push rcx					; Preserve length
+	push rdi							; Preserve line
+	push rsi							; Preserve fd
+	push rdx							; Preserve buffer
+	push rcx							; Preserve length
 
 	mov rsi, rsminfo
 	call minfo
 
-	pop rcx						; Restore length
-	pop rdx						; Restore buffer
-	pop rsi						; Restore fd
-	pop rdi						; Restore line
+	pop rcx								; Restore length
+	pop rdx								; Restore buffer
+	pop rsi								; Restore fd
+	pop rdi								; Restore line
 
 	test r10b, r10b
-	jz .skip_prot				; if filter == 0
-	test r10b, [rsminfo + protection]
-	jz .next					; if filter & prot == 0
+	jz .skip_prot						; if filter == 0
+	test r10b, [rsminfo + sminfo.prot]
+	jz .next							; if filter & prot == 0
 
 .skip_prot:
 	mov rax, rvaddr
-	cmp rax, [rsminfo + vaddr]
-	jl .next						; skip if rchunk_vaddr < segment_vaddr
+	cmp rax, [rsminfo + sminfo.vaddr]
+	jl .next							; skip if rvaddr < segment_vaddr
 
-	mov rax, [rsminfo + map_end]
-	sub rax, [rsminfo + map_start]
-	add rax, [rsminfo + vaddr]		; segment_end: rax = map_end - map_start + vaddr
-	cmp rvaddr, rax					; skip if rchunk_vaddr >= segment_end
+	mov rax, [rsminfo + sminfo.end]
+	sub rax, [rsminfo + sminfo.start]
+	add rax, [rsminfo + sminfo.vaddr]	; segment_end: rax = end - start + vaddr
+	cmp rvaddr, rax						; skip if rvaddr >= segment_end
 	jge .next
 
 	pop rvaddr

@@ -16,25 +16,25 @@ putnbr:
 
 	mov rfd, rdi
 
-	mov rlength, 1					; rlength = 1
-	mov r8, rsi						; tmp_number: r8 = number
+	mov rlength, 1			; rlength = 1
+	mov r8, rsi				; tmp_number: r8 = number
 	.numlen:
-		inc rlength					; rlength += 1
-		shr r8, 4					; tmp_number: r8 /= 16
+		inc rlength			; rlength += 1
+		shr r8, 4			; tmp_number: r8 /= 16
 		test r8, r8
-	jnz .numlen						; loop while tmp_number != 0
+	jnz .numlen				; loop while tmp_number != 0
 
-	sub rsp, rlength				; buffer: rsp[rlength]
+	sub rsp, rlength		; buffer: rsp[rlength]
 
 	mov rcx, rlength
 	mov rdi, rsp
-	call itoh						; itoh(buffer, number, delim, rlength)
+	call itoh				; itoh(buffer, number, delim, rlength)
 
 	mov rdx, rlength
 	mov rsi, rsp
 	mov rdi, rfd
 	mov rax, SYS_WRITE
-	syscall							; write(rfd, buffer, rlength)
+	syscall					; write(rfd, buffer, rlength)
 
 	add rsp, rlength
 

@@ -4,11 +4,11 @@ global ptoi
 
 ; field: rdi -> al ! rdi, rcx
 ptoi:
-	push rbx			; Preserve rbx
-	push rcx			; Preserve rcx
+	push rbx				; Preserve rbx
+	push rcx				; Preserve rcx
 
-	xor rax, rax		; value: rax = 0
-	mov rcx, 3			; i: rcx = 3
+	xor rax, rax			; value: rax = 0
+	mov rcx, 3				; i: rcx = 3
 
 	.convert:
 		dec rcx				; i: rcx -= 1
@@ -20,12 +20,12 @@ ptoi:
 			or al, bl		; value: al |= bit
 		.continue:
 		test rcx, rcx
-	jnz .convert		; while --i
+	jnz .convert			; while --i
 
-	pop rcx				; Restore rcx
-	pop rbx				; Restore rbx
+	pop rcx					; Restore rcx
+	pop rbx					; Restore rbx
 
-	sub rcx, 5			; length: rcx -= 5
-	add rdi, 5			; field: rdi += 5
+	sub rcx, 5				; length: rcx -= 5
+	add rdi, 5				; field: rdi += 5
 
 	ret
