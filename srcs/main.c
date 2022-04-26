@@ -171,8 +171,11 @@ int main(int ac, const char* av[])
 	for (uqword i = 0; i < ARRLEN(targets_decrypt); i++)
 	{
 		// if the chunk to decrypt starts after or at the decrypto's offset
-		if ((uqword)targets_decrypt[i].start >= decryptor.offset)
+		if ((uqword)targets_decrypt[i].start >= decryptor.vaddr)
+		{
+			dprintf(2, "relocating targets_decrypt %zu\n", i);
 			targets_decrypt[i].start += page_size;
+		}
 	}
 
 	///TODO: Decryptor must start pushing the true value of the EP for be able to return to it at the end
