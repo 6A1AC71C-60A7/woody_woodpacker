@@ -189,7 +189,6 @@ end:
 
 	add rsp, 8 + TERM_MSG_SIZE
 
-	call
 
 	popfq
 	pop r15
@@ -208,10 +207,10 @@ end:
 	pop rcx
 	pop rax
 
-	mov edi, STDOUT_FILENO
-	mov rsi, r12
-	mov dl, `\n`
-	call putnbr
+;	mov edi, STDOUT_FILENO
+;	mov rsi, r12
+;	mov dl, `\n`
+;	call putnbr
 ;	sub r12, 0x17651 - 0x5ef0
 
 ;	mov [rsp], r12
