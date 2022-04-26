@@ -1,8 +1,10 @@
 
-#include "wd_error.h"
-#include "wd_types.h"
+#include <stdio.h>
+#include <wd_error.h>
+#include <wd_types.h>
 #include <wd_crypt.h>
 #include <wd_parse.h>
+#include <wd_utils.h>
 #include <ftlibc.h>
 #include <woody_woodpacker.h>
 
@@ -68,6 +70,7 @@ static inline err_t parse_elf(const char* filename, parse_t* const parse,
 			if ((st = lookup_sections_X86_64(parse, map, targets_crypt, targets_decrypt)) != SUCCESS)
 				goto end;
 			arch->kcrypt = &kcrypt_X86_64;
+			arch->prepare_decryptor = &prepare_decryptor_x86_64;
 			arch->build_decryptor = &build_decryptor_x86_64;
 			arch->inject_decryptor = &inject_decryptor_X86_64;
 			break ;
@@ -77,6 +80,7 @@ static inline err_t parse_elf(const char* filename, parse_t* const parse,
 				map->entry_point = GET_ELF_ENTRY_POINT_X86(map->addr);
 				///TODO: lookup_sections_X86
 				arch->kcrypt = NULL;
+				arch->prepare_decryptor = NULL;
 				arch->build_decryptor = NULL;
 				arch->inject_decryptor = NULL;
 				break ;
@@ -124,10 +128,11 @@ uqword			page_size = 0;
 
 int main(int ac, const char* av[])
 {
-	err_t 	st = SUCCESS;
-	parse_t	parse = {0};
-	elf_map_t map = {0};
-	arch_t	arch = {0};
+	err_t 			st = SUCCESS;
+	parse_t			parse = {0};
+	elf_map_t		map = {0};
+	arch_t			arch = {0};
+	decryptor_t		decryptor = {0};
 
 	page_size = (uqword)sysconf(_SC_PAGE_SIZE);
 	if ((qword)page_size == -1)
@@ -135,9 +140,6 @@ int main(int ac, const char* av[])
 		FERROR(EFORMAT_WRAPPER, "sysconf", errno, strerror(errno));
 		return (1);
 	}
-	ubyte*	decryptor;
-	uqword	decryptor_size;
-
 	++av;
 
 	///NOTE: Uncomment for decryption and/or payload testing
@@ -162,19 +164,27 @@ int main(int ac, const char* av[])
 	if ((st = handle_key(&parse)) != SUCCESS)
 		goto end;
 
-	///TODO: Decryptor isn't right yet, so this makes woody crash ...
 	encrypt_chunks(targets_crypt, parse.key, arch.kcrypt);
 
+	arch.prepare_decryptor(&map, &decryptor);
+
+	for (uqword i = 0; i < ARRLEN(targets_decrypt); i++)
+	{
+		// if the chunk to decrypt starts after or at the decrypto's offset
+		if ((uqword)targets_decrypt[i].start >= decryptor.offset)
+			targets_decrypt[i].start += page_size;
+	}
+
 	///TODO: Decryptor must start pushing the true value of the EP for be able to return to it at the end
-	if ((st = arch.build_decryptor(&decryptor, &parse, targets_decrypt, &decryptor_size, map.entry_point)) != SUCCESS)
+	if ((st = arch.build_decryptor(&decryptor, &parse, targets_decrypt, map.entry_point)) != SUCCESS)
 		goto end;
 
-	arch.inject_decryptor(&map, decryptor, decryptor_size);
+	arch.inject_decryptor(&map, &decryptor);
 
 	write_woody_file(map.addr, map.size, map.mode);
 
 	///TODO: In this situation freeing is irelevant, but if i'll do it anyways i have to handle all the cases ...
-	free(decryptor);
+	free(decryptor.data);
 	munmap(map.addr, map.size + MAX_PAYLOAD_SIZE);
 
 end:

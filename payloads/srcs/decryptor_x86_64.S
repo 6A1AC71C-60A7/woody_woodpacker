@@ -1,13 +1,21 @@
 %include "libpayload.S"
+
 %include "payloads.S"
+
+%define rchunk rbp
+%define rminfo rbx
+%define rbuffer r12
+%define rmaps_fd r13
+%define rn r14
+%define rkey_str r15
 
 section .text
 
 ;extern htoi
 ;extern next_field
 ;extern next_line
-;extern putminfo
-;extern putnbr
+extern putminfo
+extern putnbr
 extern mfind
 
 global _start
@@ -24,7 +32,7 @@ _start:
 	mov rbuffer, rsp				; rbuffer = rsp[BUFFER_SIZE]
 
 	sub rsp, sminfo_size
-	mov rsminfo, rsp				; rsminfo = rsp[sminfo_size]
+	mov rminfo, rsp					; rminfo = rsp[sminfo_size]
 
 	mov r8, maps_filepath_8_16
 	push r8
@@ -47,31 +55,45 @@ _start:
 	xor rcx, rcx					; length: rcx = 0
 	mov rdi, rbuffer				; line: rdi = rbuffer
 
+; Registers to preserve: line: rdi, length: rcx
 decrypt_chunk:
-	mov rdx, rbuffer				; buffer: rdx = rbuffer
+
+	push rdi
+	push rcx
+	mov dl, `\n`
+	mov rsi, [rchunk + schunk.vaddr]
+	mov edi, STDOUT_FILENO
+	call putnbr
+	pop rcx
+	pop rdi
+
+	add rcx, rdi
+	sub rcx, rbuffer				; length: rcx = line_end - buffer_data
+	mov rdi, rbuffer				; line: rdi = buffer
 	mov rsi, rmaps_fd				; fd: rsi = rmaps_fd
-	mov r8, rsminfo
-	mov r9, [rchunk + schunk.vaddr]
-	mov r10b, 0						; no filter
+	mov rdx, rbuffer				; buffer: rdx = rbuffer
+	mov r8, rminfo					; sminfo: r8 = rminfo
+	mov r9, [rchunk + schunk.vaddr]	; vaddr: r9 = rchunk.vaddr
+	mov r10b, PROT_NONE				; filter: r10b = 0
 	call mfind						; mfind(line, fd, buffer, sminfo, vaddr, filter)
 
 	mov rax, [rchunk + schunk.vaddr]
-	sub rax, [rsminfo + sminfo.vaddr]
-	add rax, [rsminfo + sminfo.start]
-	mov [rchunk + schunk.vaddr], rax
+	sub rax, [rminfo + sminfo.vaddr]
+	add rax, [rminfo + sminfo.start]
+	mov [rchunk + schunk.vaddr], rax	; rchunk.vaddr = rchunk.vaddr - rminfo.vaddr + rminfo.start
 
-	push rdx
-	push rcx
-	push rdi
-	mov rdi, [rsminfo + sminfo.start]
-	mov rsi, [rsminfo + sminfo.end]
+	push rdi						; Preserve line
+	push rcx						; Preserve length
+
+	mov rdi, [rminfo + sminfo.start]
+	mov rsi, [rminfo + sminfo.end]
 	sub rsi, rdi
-	mov edx, 7						; prot TODO: Restore old protection
-	mov rax, SYS_MPROTECT			; mprotect(map_start, map_end - map_start, PROT_RWX)
-	syscall
-	pop rdi
-	pop rcx
-	pop rdx
+	mov edx, PROT_RWX				; TODO: Restore old protection
+	mov rax, SYS_MPROTECT
+	syscall							; mprotect(map_start, map_end - map_start, PROT_RWX)
+
+	pop rcx							; Restore length
+	pop rdi							; Restore line
 
 .term_msg:
 	xor r8, r8						; data_iterator: r8 = 0
@@ -100,10 +122,6 @@ decrypt_chunk:
 	jb .byte						; if data_iterator >= chunk_size
 	add rchunk, schunk_size			; rchunk += schunk_size
 
-	add rcx, rdi
-	sub rcx, rbuffer				; length: rcx = line_end - buffer_data
-	mov rdi, rbuffer				; line: rdi = buffer
-
 	dec rn
 	js end							; if rn >= 0
 	test rn, rn
@@ -120,42 +138,46 @@ decrypt_chunk:
 end:
 	mov r9, [rchunk + EP_OFFSET]	; Load real entrypoint pointer
 
+	push r9								; Preserve entrypoint
 	push rdi
 	push rsi
 	push rcx
 
-;	mov edi, STDOUT_FILENO
-;	mov rsi, r9
-;	mov dl, `\n`
-;	call putnbr
+	mov edi, STDOUT_FILENO
+	mov rsi, r9
+	mov dl, `\n`
+	call putnbr
 
 	pop rcx
 	pop rsi
 	pop rdi
 
-	push r9								; Preserve entrypoint
 
 	mov rdx, rbuffer					; buffer: rdx = rbuffer
 	mov rsi, rmaps_fd					; fd: rsi = rmaps_fd
-	mov r8, rsminfo
-	mov r10b, PROT_EXEC
-	call mfind
+	mov r8, rminfo						; sminfo: r8 = rsminfo
+	mov r10b, PROT_EXEC					; filter: r10b = PROT_EXEC
+	call mfind							; mfind(line, fd, buffer, length, sminfo, filter)
 
-;	mov edi, STDOUT_FILENO
-;	mov rsi, rsminfo
-;	call putminfo
+	mov edi, STDOUT_FILENO
+	mov rsi, rminfo
+	call putminfo
 
 	pop r9								; Restore entrypoint
 
-	sub r9, [rsminfo + sminfo.vaddr]
-	add r9, [rsminfo + sminfo.start]	; Translate entrypoint address
+	sub r9, [rminfo + sminfo.vaddr]
+	add r9, [rminfo + sminfo.start]		; Translate entrypoint address
+
+;	add r9, 0xa
+	;lea r9, fs:0x1160
+	;mov [rchunk + EP_OFFSET], r9
 
 	mov [rchunk + EP_OFFSET], r9		; Overwrite entrypoint
 
-;	mov edi, STDOUT_FILENO
-;	mov rsi, r9
-;	mov dl, `\n`
-;	call putnbr
+	mov edi, STDOUT_FILENO
+	mov rsi, r9
+	mov dl, `\n`
+	call putnbr
 
 	mov rsp, rchunk
 
@@ -166,3 +188,34 @@ end:
 	syscall								; write(STDOUT_FILENO, chunk_vaddr, chunk_size)
 
 	add rsp, 8 + TERM_MSG_SIZE
+
+	call
+
+	popfq
+	pop r15
+	pop r14
+	pop r13
+	pop r12
+	pop r11
+	pop r10
+	pop r9
+	pop r8
+	pop rdi
+	pop rsi
+	pop rbp
+	pop rbx
+	pop rdx
+	pop rcx
+	pop rax
+
+	mov edi, STDOUT_FILENO
+	mov rsi, r12
+	mov dl, `\n`
+	call putnbr
+;	sub r12, 0x17651 - 0x5ef0
+
+;	mov [rsp], r12
+
+	ret
+
+; FUNCTIONS

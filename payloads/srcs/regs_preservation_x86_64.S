@@ -6,7 +6,6 @@ _start:
 	push rcx
 	push rdx
 	push rbx
-	push rsp
 	push rbp
 	push rsi
 	push rdi

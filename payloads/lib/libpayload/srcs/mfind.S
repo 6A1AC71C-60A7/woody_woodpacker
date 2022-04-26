@@ -2,6 +2,7 @@
 
 %define rminfo r12
 %define rvaddr r13
+%define rfilter r14
 
 section .text
 
@@ -14,9 +15,11 @@ global mfind
 mfind:
 	push rminfo
 	push rvaddr
+	push rfilter
 
 	mov rminfo, r8
 	mov rvaddr, r9
+	mov r14b, r10b
 
 .next:
 	call next_line						; next_line(line: rdi, fd: esi, buffer: rdx, length: rcx)
@@ -34,9 +37,9 @@ mfind:
 	pop rsi								; Restore fd
 	pop rdi								; Restore line
 
-	test r10b, r10b
+	test r14b, r14b
 	jz .skip_prot						; if filter == 0
-	test r10b, [rminfo + sminfo.prot]
+	test r14b, [rminfo + sminfo.prot]
 	jz .next							; if filter & prot == 0
 
 .skip_prot:
@@ -50,6 +53,7 @@ mfind:
 	cmp rvaddr, rax						; skip if rvaddr >= segment_end
 	jge .next
 
+	pop rfilter
 	pop rvaddr
 	pop rminfo
 

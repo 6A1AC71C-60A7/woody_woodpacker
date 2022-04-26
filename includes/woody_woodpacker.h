@@ -24,7 +24,7 @@ extern uqword	page_size;
 
 #define PAGE_ROUND(x) ((((x) / page_size) + ((x) % page_size != 0)) * page_size)
 
-//#define PAGE_ROUND(x) 
+//#define PAGE_ROUND(x)
 
 typedef struct		elf_map
 {
@@ -36,28 +36,45 @@ typedef struct		elf_map
 	udword			mode;
 }					elf_map_t;
 
-typedef err_t (*build_decryptor_t)(ubyte** const dest, const parse_t* const in,
-		const crypt_pair_t* const targets, uqword* const size, uqword ep);
+typedef struct	decryptor
+{
+	ubyte*	data;
+	uqword	size;
+	uqword	segment_index;
+	uqword	segment_offset;
+	uqword	offset;
+	uqword	vaddr;
+}				decryptor_t;
+
+
+typedef err_t (*prepare_decryptor_t)(const elf_map_t *const map,
+	decryptor_t* const dec);
+typedef err_t (*build_decryptor_t)(decryptor_t* const dest,
+	const parse_t* const in, const crypt_pair_t* const targets, uqword ep);
 
 typedef void (*kcrypt_t)(ubyte* const plaintext, uqword plaintext_len, uqword key);
 
-typedef void (*inject_decryptor_t)(elf_map_t* const map, ubyte* decryptor, uqword decryptor_size);
+typedef void (*inject_decryptor_t)(elf_map_t* const map, const decryptor_t* const dec);
+
 
 typedef struct		arch
 {
+	prepare_decryptor_t	prepare_decryptor;
 	build_decryptor_t	build_decryptor;
 	kcrypt_t			kcrypt;
 	inject_decryptor_t	inject_decryptor;
 }					arch_t;
+
 
 uqword	genkey();
 err_t	map_elf(const char* filename, elf_map_t* const map);
 
 err_t	lookup_sections_X86_64(const parse_t* const in, const elf_map_t* map,
 		crypt_pair_t* const target_crypt, crypt_pair_t* const target_decrypt);
-err_t	build_decryptor_x86_64(ubyte** const dest, const parse_t* const in,
-		const crypt_pair_t* const targets, uqword* const size, uqword ep);
-void	inject_decryptor_X86_64(elf_map_t* const map, ubyte* decryptor, uqword decryptor_size);
+err_t	prepare_decryptor_x86_64(const elf_map_t *const map, decryptor_t* const dec);
+err_t	build_decryptor_x86_64(decryptor_t* const dest, const parse_t* const in,
+		const crypt_pair_t* const targets, uqword ep);
+void	inject_decryptor_X86_64(elf_map_t* const map, const decryptor_t* const dec);
 
 void	encrypt_chunks(const crypt_pair_t* const chunks, uqword key, kcrypt_t kcrypt);
 

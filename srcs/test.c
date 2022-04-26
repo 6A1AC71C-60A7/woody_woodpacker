@@ -99,20 +99,19 @@ void test_crypt_payload()
 	in.key = key;
 	//in.opts = O_ANTIPTRCE; works well
 
-	ubyte* payload;
-	uqword payload_len;
-	build_decryptor_x86_64(&payload, &in, targets, &payload_len, 0X1122334455667788);
+	decryptor_t	decryptor;
+	build_decryptor_x86_64(&decryptor, &in, targets, 0X1122334455667788);
 
-	ubyte* mem = mmap(0, payload_len, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
+	ubyte* mem = mmap(0, decryptor.size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
 	if (mem == MAP_FAILED)
 		perror("mmap");
-	ft_memcpy(mem, payload, payload_len);
+	ft_memcpy(mem, decryptor.data, decryptor.size);
 
-	printf("[WRITING THE PAYLOAD]: (size: %"PRIuq") on the 'on_test' file\n", payload_len);
+	printf("[WRITING THE PAYLOAD]: (size: %"PRIuq") on the 'on_test' file\n", decryptor.size);
 	int fd = open("on_test", O_CREAT | O_WRONLY, S_IRWXU);
 	if (fd < 0)
 		perror("open");
-	write(fd, mem, payload_len);
+	write(fd, mem, decryptor.size);
 
 	//((void (*)())mem)();
 	exec_payload(mem);

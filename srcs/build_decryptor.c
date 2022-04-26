@@ -46,10 +46,13 @@ static const ubyte woody_msg[] = {
 #define OP_RETF '\xCB'
 #define OP_RETF_SIZE 0x1
 
+#define OP_JUMPN '\xE9'
+#define OP_JUMPN_SIZE 0x4
+
 __attribute__ ((always_inline))
 static inline uqword get_decryptor_size_x86_64(const parse_t* const in, const crypt_pair_t* const targets)
 {
-	register qword size = ARRLEN(regs_preservation_x86_64) + ARRLEN(decryptor_x86_64) + ARRLEN(regs_restoration_x86_64);
+	register qword size = ARRLEN(regs_preservation_x86_64) + ARRLEN(decryptor_x86_64); //+ ARRLEN(regs_restoration_x86_64);
 
 	/* Pushed entry point */
 	size += (OP_MOV_IMM_TO_MEM_SIZE * 2) + (OP_ADD_SIZE * 2);
@@ -67,8 +70,11 @@ static inline uqword get_decryptor_size_x86_64(const parse_t* const in, const cr
 	/* Total amount if chunks */
 	size += OP_MOV_IMM_TO_REG_SIZE + OP_PUSH_RAX_SIZE;
 
+	/* End jump */
+	//size += OP_JUMPN_SIZE;
+
 	/* Return */
-	size += OP_RETN_SIZE;
+	//size += OP_RETN_SIZE;
 
 	if (in->opts & O_ANTIPTRCE)
 		size += ARRLEN(antiptrace_x86_64);
@@ -105,12 +111,13 @@ static inline void push_entry_point(ubyte* const dest, uqword* const offset, uqw
 		OP_SUB_SIZE_OPERAND, OP_SUB, OP_SUB_TO_RSP, 0x4
 	};
 
-	*imm32 = ep[0];
-	memcpy_offset(dest, op_mov_mem_to_rsp, ARRLEN(op_mov_mem_to_rsp), offset);
-	memcpy_offset(dest, op_sub_4_to_rsp, ARRLEN(op_sub_4_to_rsp), offset);
 	*imm32 = ep[1];
-	memcpy_offset(dest, op_mov_mem_to_rsp, ARRLEN(op_mov_mem_to_rsp), offset);
 	memcpy_offset(dest, op_sub_4_to_rsp, ARRLEN(op_sub_4_to_rsp), offset);
+	memcpy_offset(dest, op_mov_mem_to_rsp, ARRLEN(op_mov_mem_to_rsp), offset);
+
+	*imm32 = ep[0];
+	memcpy_offset(dest, op_sub_4_to_rsp, ARRLEN(op_sub_4_to_rsp), offset);
+	memcpy_offset(dest, op_mov_mem_to_rsp, ARRLEN(op_mov_mem_to_rsp), offset);
 }
 
 __attribute__ ((always_inline))
@@ -181,18 +188,19 @@ static inline void build_stack_initializer_x86_64(ubyte* const dest, uqword* con
  * @param size On return, will point to the size of the decryptor.
  * @param ep The real ELF entrypoint (where control will be transfered after the decryptor).
  */
-err_t build_decryptor_x86_64(ubyte** const dest, const parse_t* const in,
-		const crypt_pair_t* const targets, uqword* const size, uqword ep)
+err_t build_decryptor_x86_64(decryptor_t* const dest, const parse_t* const in,
+		const crypt_pair_t* const targets, uqword ep)
 {
+	//uqword payload_size;
 	uqword offset = 0;
 
 	///TODO: Push EP at the begin return to it at the end
 	///TODO: Probally for test RETN is needed but whether the injected decryptor returns to another segment RETF will be necesary
 	/// https://stackoverflow.com/questions/1396909/ret-retn-retf-how-to-use-them
 
-	*size = get_decryptor_size_x86_64(in, targets);
+	dest->size = get_decryptor_size_x86_64(in, targets);
 
-	if ((*dest = (ubyte*)malloc(sizeof(ubyte) * *size)) == NULL)
+	if ((dest->data = (ubyte*)malloc(sizeof(ubyte) * dest->size)) == NULL)
 	{
 		FERROR(EFORMAT_WRAPPER, "malloc", errno, strerror(errno));
 		return EWRAPPER;
@@ -200,23 +208,31 @@ err_t build_decryptor_x86_64(ubyte** const dest, const parse_t* const in,
 
 	(void)ep;
 	///TODO: Uncomment this to push the entry point at the begin
-	push_entry_point(*dest, &offset, ep);
+	push_entry_point(dest->data, &offset, ep);
 
-	memcpy_offset(*dest, regs_preservation_x86_64, ARRLEN(regs_preservation_x86_64), &offset);
+	memcpy_offset(dest->data, regs_preservation_x86_64, ARRLEN(regs_preservation_x86_64), &offset);
 
 	if (in->opts & O_ANTIPTRCE)
-		memcpy_offset(*dest, antiptrace_x86_64, ARRLEN(antiptrace_x86_64), &offset);
+		memcpy_offset(dest->data, antiptrace_x86_64, ARRLEN(antiptrace_x86_64), &offset);
 
-	build_stack_initializer_x86_64(*dest, &offset, targets, in->key);
+	build_stack_initializer_x86_64(dest->data, &offset, targets, in->key);
 
-	memcpy_offset(*dest, decryptor_x86_64, ARRLEN(decryptor_x86_64), &offset);
+	//payload_size = ARRLEN(decryptor_x86_64);
+	memcpy_offset(dest->data, decryptor_x86_64, ARRLEN(decryptor_x86_64), &offset);
 
 	if (in->opts & O_APPENDDAT)
-		ft_memcpy(*dest + offset, in->data + sizeof(uqword), *(uqword*)in->data);
+	{
+	//	payload_size += *(uqword*)in->data;
+		ft_memcpy(dest->data + offset, in->data + sizeof(uqword), *(uqword*)in->data);
+	}
 
-	memcpy_offset(*dest, regs_restoration_x86_64, ARRLEN(regs_restoration_x86_64), &offset);
+	//memcpy_offset(*dest, (ubyte[OP_JUMPN_SIZE]){OP_JUMPN, payload_size}, OP_JUMPN_SIZE, &offset);
 
-	memcpy_offset(*dest, (ubyte[]){OP_RETN}, OP_RETN_SIZE, &offset);
+	//memcpy_offset(*dest, regs_restoration_x86_64, ARRLEN(regs_restoration_x86_64), &offset);
+
+	//memcpy_offset(*dest, (ubyte[]){OP_RETN}, OP_RETN_SIZE, &offset);
+
+
 
 	///NOTE: Maybe 'retf' is needed isntead of 'retn'
 	//memcpy_offset(*dest, (ubyte[]){OP_RETF}, OP_RETF_SIZE, &offset);
