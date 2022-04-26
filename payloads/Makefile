@@ -74,8 +74,10 @@ $(LIBS): %.a: FORCE
 
 # Objects
 $(OBJS_x86_64): ASFLAGS+=$(ASFLAGS_x86_64)
+$(OBJS_x86_64): LDFLAGS+=$(LDFLAGS_x86_64)
 
 $(OBJS_x86): ASFLAGS+=$(ASFLAGS_x86)
+$(OBJS_x86): LDFLAGS+=$(LDFLAGS_x86)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.S $(HDRS) | $(OBJDIR)
 	@mkdir -p '$(@D)'

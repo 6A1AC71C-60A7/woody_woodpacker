@@ -11,11 +11,8 @@
 
 section .text
 
-;extern htoi
-;extern next_field
-;extern next_line
 extern putminfo
-extern putnbr
+;extern putnbr
 extern mfind
 
 global _start
@@ -57,15 +54,14 @@ _start:
 
 ; Registers to preserve: line: rdi, length: rcx
 decrypt_chunk:
-
-	push rdi
-	push rcx
-	mov dl, `\n`
-	mov rsi, [rchunk + schunk.vaddr]
-	mov edi, STDOUT_FILENO
-	call putnbr
-	pop rcx
-	pop rdi
+;	push rcx
+;	push rdi
+;	mov edi, STDOUT_FILENO
+;	mov rsi, rn
+;	mov dl, `\n`
+;	call putnbr
+;	pop rdi
+;	pop rcx
 
 	add rcx, rdi
 	sub rcx, rbuffer				; length: rcx = line_end - buffer_data
@@ -76,11 +72,16 @@ decrypt_chunk:
 	mov r9, [rchunk + schunk.vaddr]	; vaddr: r9 = rchunk.vaddr
 	mov r10b, PROT_NONE				; filter: r10b = 0
 	call mfind						; mfind(line, fd, buffer, sminfo, vaddr, filter)
+	mov [rchunk + schunk.vaddr], rax; rchunk.vaddr = rchunk.vaddr - rminfo.vaddr + rminfo.start
 
-	mov rax, [rchunk + schunk.vaddr]
-	sub rax, [rminfo + sminfo.vaddr]
-	add rax, [rminfo + sminfo.start]
-	mov [rchunk + schunk.vaddr], rax	; rchunk.vaddr = rchunk.vaddr - rminfo.vaddr + rminfo.start
+;	push rdi
+; 	push rcx
+; 	mov dl, `\n`
+; 	mov rsi, rax
+; 	mov edi, STDOUT_FILENO
+; 	call putnbr
+; 	pop rcx
+; 	pop rdi
 
 	push rdi						; Preserve line
 	push rcx						; Preserve length
@@ -99,6 +100,8 @@ decrypt_chunk:
 	xor r8, r8						; data_iterator: r8 = 0
 
 .byte:
+	push rcx
+
 	mov rdx, r8
 	and rdx, 7						; key_offset: rdx = data_iterator % 8
 
@@ -107,16 +110,16 @@ decrypt_chunk:
 	mov r11, [rchunk + schunk.vaddr]
 	sub BYTE [r11 + r8], r9b		; cipher_text[data_iterator] -= key_c
 
-	push rcx
 	mov cl, dl
 	rol BYTE [r11 + r8], cl			; ROTL(cipher_text[data_iterator], key_offset)
-	pop rcx
 
 	not BYTE [r11 + r8]				; cipher_text[data_iterator] = ~cipher_text[data_iterator]
 
 	xor BYTE [r11 + r8], r9b		; cipher_text[data_iterator] ^= key_c
 
 	inc r8							; data_iterator: r8 += 1
+
+	pop rcx
 
 	cmp r8, [rchunk + schunk.size]
 	jb .byte						; if data_iterator >= chunk_size
@@ -136,48 +139,26 @@ decrypt_chunk:
 	jmp .term_msg					; Decrypt woody string
 
 end:
-	mov r9, [rchunk + EP_OFFSET]	; Load real entrypoint pointer
-
-	push r9								; Preserve entrypoint
-	push rdi
-	push rsi
-	push rcx
-
-	mov edi, STDOUT_FILENO
-	mov rsi, r9
-	mov dl, `\n`
-	call putnbr
-
-	pop rcx
-	pop rsi
-	pop rdi
-
-
-	mov rdx, rbuffer					; buffer: rdx = rbuffer
-	mov rsi, rmaps_fd					; fd: rsi = rmaps_fd
+	add rcx, rdi
+	sub rcx, rbuffer				; length: rcx = line_end - buffer_data
+	mov rdi, rbuffer				; line: rdi = buffer
+	mov rsi, rmaps_fd				; fd: rsi = rmaps_fd
+	mov rdx, rbuffer				; buffer: rdx = rbuffer
 	mov r8, rminfo						; sminfo: r8 = rsminfo
+	mov r9, [rchunk + EP_OFFSET]	; Load real entrypoint pointer
 	mov r10b, PROT_EXEC					; filter: r10b = PROT_EXEC
 	call mfind							; mfind(line, fd, buffer, length, sminfo, filter)
 
-	mov edi, STDOUT_FILENO
-	mov rsi, rminfo
-	call putminfo
+;	mov edi, STDOUT_FILENO
+;	mov rsi, rminfo
+;	call putminfo
 
-	pop r9								; Restore entrypoint
+	mov [rchunk + EP_OFFSET], rax		; Overwrite entrypoint
 
-	sub r9, [rminfo + sminfo.vaddr]
-	add r9, [rminfo + sminfo.start]		; Translate entrypoint address
-
-;	add r9, 0xa
-	;lea r9, fs:0x1160
-	;mov [rchunk + EP_OFFSET], r9
-
-	mov [rchunk + EP_OFFSET], r9		; Overwrite entrypoint
-
-	mov edi, STDOUT_FILENO
-	mov rsi, r9
-	mov dl, `\n`
-	call putnbr
+;	mov edi, STDOUT_FILENO
+;	mov rsi, rax
+;	mov dl, `\n`
+;	call putnbr
 
 	mov rsp, rchunk
 
@@ -189,6 +170,7 @@ end:
 
 	add rsp, 8 + TERM_MSG_SIZE
 
+	;call payload
 
 	popfq
 	pop r15
@@ -216,5 +198,3 @@ end:
 ;	mov [rsp], r12
 
 	ret
-
-; FUNCTIONS
