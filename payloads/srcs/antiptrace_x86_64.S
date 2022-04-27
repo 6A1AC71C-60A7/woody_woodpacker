@@ -1,6 +1,7 @@
 %include "syscall.S"
 
-section .text
+section .text.startup
+
 global _start
 
 _start:
@@ -26,4 +27,4 @@ _start:
 	mov rdi, 0
 	syscall
 
-	not_traced:
+not_traced:

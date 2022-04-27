@@ -4,7 +4,7 @@
 
 /**
  * @brief Encrypt all the chunks using key.
- * 
+ *
  * @param chunks An array of structs holding addresses and sizes to encrypt.
  * @param key The 64 bit encryptation key.
  * @param kcrypt A function pointer used to encrypt which used @p chunks and @p key data.

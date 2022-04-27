@@ -18,20 +18,20 @@ putminfo:
 	mov rfd, rdi					; rfd = fd
 	mov rsminfo, rsi				; rsminfo = sminfo
 
-	mov rsi, [rsminfo + map_start]
+	mov rsi, [rsminfo + sminfo.start]
 	mov dl, '-'
-	call putnbr						; putnbr(rsminfo.map_start, '-')
+	call putnbr						; putnbr(rsminfo.start, '-')
 
-	mov rsi, [rsminfo + map_end]
+	mov rsi, [rsminfo + sminfo.end]
 	mov dl, ' '
-	call putnbr						; putnbr(rsminfo.map_end, ' ')
+	call putnbr						; putnbr(rsminfo.end, ' ')
 
-	mov rsi, [rsminfo + vaddr]
+	mov rsi, [rsminfo + sminfo.vaddr]
 	mov dl, ' '
 	call putnbr						; putnbr(rsminfo.vaddr, ' ')
 
 	xor rsi, rsi
-	mov sil, [rsminfo + protection]
+	mov sil, [rsminfo + sminfo.prot]
 	mov dl, `\n`
 	call putnbr						; putnbr(rsminfo.vaddr, ' ')
 

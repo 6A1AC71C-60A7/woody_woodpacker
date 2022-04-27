@@ -47,7 +47,7 @@ $(PAYLOADDIR)/wd_payloads.h: FORCE
 	@$(MAKE) --quiet -C payloads NAME=$(@F) $(@F)
 
 # Objects
-$(OBJS): $(OBJDIR)/%.o: $(SRCDIR)/%.c $(OBJDIR)/%.d | $(OBJDIR)
+$(OBJS): $(OBJDIR)/%.o: $(SRCDIR)/%.c $(OBJDIR)/%.d $(PAYLOADDIR)/wd_payloads.h | $(OBJDIR)
 	@mkdir -p '$(@D)'
 	@echo "CC $<"
 	@$(COMPILE.c) $< -o $@
@@ -62,10 +62,13 @@ $(NAME) : $(OBJS)
 	@$(COMPILE.o) $^ -o $@ $(LDFLAGS)
 
 clean:
+	echo "MK -C $(PAYLOADDIR) $@" && $(MAKE) -C $(PAYLOADDIR) $@
+	rm $(PAYLOADS_x86_64) $(PAYLOADS_x86) 2>/dev/null && echo "RM $(PAYLOADS)" || :
 	@echo RM $(OBJDIR)
 	@$(RM) -rf $(OBJDIR)
 
 fclean: clean
+	echo "MK -C $(PAYLOADDIR) $@" && $(MAKE) -C $(PAYLOADDIR) $@
 	@echo RM $(NAME)
 	@$(RM) -rf $(NAME)
 

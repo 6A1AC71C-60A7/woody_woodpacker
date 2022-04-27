@@ -9,11 +9,13 @@
 %define rn r14
 %define rkey_str r15
 
-section .text
+section .text.startup
 
-extern putminfo
+;extern putminfo
 ;extern putnbr
 extern mfind
+
+extern main
 
 global _start
 
@@ -170,8 +172,9 @@ end:
 
 	add rsp, 8 + TERM_MSG_SIZE
 
-	;call payload
+	call main
 
+	; Restore original register state
 	popfq
 	pop r15
 	pop r14
@@ -188,13 +191,5 @@ end:
 	pop rdx
 	pop rcx
 	pop rax
-
-;	mov edi, STDOUT_FILENO
-;	mov rsi, r12
-;	mov dl, `\n`
-;	call putnbr
-;	sub r12, 0x17651 - 0x5ef0
-
-;	mov [rsp], r12
 
 	ret

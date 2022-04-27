@@ -22,6 +22,8 @@ LIBARS=$(notdir $(LIBS))
 # Sources
 INCS = $(LIBINCS) $(INCDIR)
 HDRS = $(addprefix $(INCDIR)/, payloads.S)
+
+DEFAULT_PAYLOAD=default_payload
 PAYLOADS=antiptrace decryptor regs_preservation regs_restoration
 ARCHS=x86_64 x86
 
@@ -29,16 +31,24 @@ ARCHS=x86_64 x86
 TARGET_PAYLOADS=$(PAYLOADS_x86_64)# $(PAYLOADS_x86)
 
 # Payload binaries
-PAYLOADS_x86_64=$(addsuffix _x86_64, $(addprefix $(BINDIR)/, $(PAYLOADS)))
-PAYLOADS_x86=$(addsuffix _x86, $(addprefix $(BINDIR)/, $(PAYLOADS)))
+PAYLOADS_BIN= $(addprefix $(BINDIR)/, $(PAYLOADS))
+PAYLOADS_x86_64=$(addsuffix _x86_64, $(PAYLOADS_BIN))
+PAYLOADS_x86=$(addsuffix _x86, $(PAYLOADS_BIN))
 
 # Payload sources
-SRCS_x86_64=$(addsuffix _x86_64.S, $(addprefix $(SRCDIR)/, $(PAYLOADS)))
-SRCS_x86=$(addsuffix _x86.S, $(addprefix $(SRCDIR)/, $(PAYLOADS)))
+SRCS=$(addprefix $(SRCDIR)/, $(PAYLOADS) $(DEFAULT_PAYLOAD))
+PAYLOAD_SRC_x86_64=$(SRCDIR)/$(DEFAULT_PAYLOAD)_x86_64.S
+PAYLOAD_SRC_x86=$(SRCDIR)/$(DEFAULT_PAYLOAD)_x86.S
+SRCS_x86_64=$(addsuffix _x86_64.S, $(SRCS))
+SRCS_x86=$(addsuffix _x86.S, $(SRCS))
 
 # Payload relocatable objects
 OBJS_x86_64=$(SRCS_x86_64:$(SRCDIR)/%.S=$(OBJDIR)/%.o)
 OBJS_x86=$(SRCS_x86:$(SRCDIR)/%.S=$(OBJDIR)/%.o)
+
+# Custom additional payload relocatable object
+PAYLOAD_OBJ_x86_64=$(PAYLOAD_SRC_x86_64:$(SRCDIR)/%.S=$(OBJDIR)/%.o)
+PAYLOAD_OBJ_x86=$(PAYLOAD_SRC_x86:$(SRCDIR)/%.S=$(OBJDIR)/%.o)
 
 # Assembler and Linker
 AS=nasm
@@ -46,7 +56,7 @@ LD=ld
 
 # Flags
 ASFLAGS=$(INCS:%=-I%)
-LDFLAGS=$(LIBDIRS:%=-L%)
+LDFLAGS=$(LIBDIRS:%=-L%) -T link.ld --gc-sections -z nodefaultlib
 LDLIBS=$(LIBARS:lib%.a=-l%)
 
 ASFLAGS_x86_64=-f elf64
@@ -59,47 +69,46 @@ LDFLAGS_x86=-m elf_i386
 COMPILE.S=$(AS) $(ASFLAGS)
 COMPILE.o=$(LD) $(LDFLAGS)
 
+
 # Default target
 all: $(NAME)
+
 
 # Directories
 $(OBJDIR) $(BINDIR):
 	@echo "MK $@"
 	@mkdir -p "$@"
 
+
 # Libraries
 $(LIBS): %.a: FORCE
 	@echo "MK $@"
 	@$(MAKE) -C $(dir $@) NAME=$(@F)
 
-# Objects
-$(OBJS_x86_64): ASFLAGS+=$(ASFLAGS_x86_64)
-$(OBJS_x86_64): LDFLAGS+=$(LDFLAGS_x86_64)
 
-$(OBJS_x86): ASFLAGS+=$(ASFLAGS_x86)
-$(OBJS_x86): LDFLAGS+=$(LDFLAGS_x86)
+# Objects
+$(OBJS_x86_64) $(PAYLOAD_OBJ_x86_64): ASFLAGS+=$(ASFLAGS_x86_64)
+$(OBJS_x86_64) $(PAYLOAD_OBJ_x86_64): LDFLAGS+=$(LDFLAGS_x86_64)
+
+$(OBJS_x86) $(PAYLOAD_OBJ_x86): ASFLAGS+=$(ASFLAGS_x86)
+$(OBJS_x86) $(PAYLOAD_OBJ_x86): LDFLAGS+=$(LDFLAGS_x86)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.S $(HDRS) | $(OBJDIR)
 	@mkdir -p '$(@D)'
 	@echo "AS $<"
 	$(COMPILE.S) $< -o $@
 
-$(BINDIR)/%: $(OBJDIR)/%.o $(LIBS) | $(BINDIR)
-	$(COMPILE.o) -o $@ $< $(LDLIBS)
 
-clean:
-	$(foreach dir, $(LIBDIRS),\
-		echo "MK $(addprefix -C , $(dir)) $@" && make -C $(dir) $@ ; ):
-	rm -r "$(OBJDIR)" 2>/dev/null && echo "RM $(OBJDIR)" || :
+# Binaries
+$(PAYLOADS_x86_64): $(BINDIR)/%: $(OBJDIR)/%.o $(PAYLOAD_OBJ_x86_64) $(LIBS) link.ld | $(BINDIR)
+	@echo "LD $@"
+	$(COMPILE.o) -o $@ $< $(PAYLOAD_OBJ_x86_64) $(LDLIBS)
 
-fclean: clean
-	$(foreach dir, $(LIBDIRS),\
-		echo "MK $(addprefix -C, $(dir)) $@" && make -C $(dir) $@ ; ):
-	rm $(PAYLOADS) 2>/dev/null && echo "RM $(PAYLOADS)" || :
-	rm $(NAME) 2>/dev/null && echo "RM $(NAME)" || :
+$(PAYLOADS_x86): $(BINDIR)/%: $(OBJDIR)/%.o $(PAYLOAD_OBJ_x86) $(LIBS) link.ld | $(BINDIR)
+	@echo "LD $@"
+	$(COMPILE.o) -o $@ $< $(PAYLOAD_OBJ_x86) $(LDLIBS)
 
-re: fclean all
-
+# C array header
 $(NAME): $(PAYLOADS_x86_64) Makefile
 	@echo "OD $< > $@"
 
@@ -113,9 +122,31 @@ $(NAME): $(PAYLOADS_x86_64) Makefile
 		| fold -s -w 76 | sed -e 's/^/\t/g' >> $@; \
 		echo -ne "\n};\n" >> $@;)
 
+
+# Cleanup
+clean:
+	$(foreach dir, $(LIBDIRS),\
+		echo "MK $(addprefix -C , $(dir)) $@" && make -C $(dir) $@ ; ):
+	rm -r "$(OBJDIR)" 2>/dev/null && echo "RM $(OBJDIR)" || :
+
+
+# Full cleanup
+fclean: clean
+	$(foreach dir, $(LIBDIRS),\
+		echo "MK $(addprefix -C, $(dir)) $@" && make -C $(dir) $@ ; ):
+	rm $(PAYLOADS_x86_64) $(PAYLOADS_x86) 2>/dev/null && echo "RM $(PAYLOADS)" || :
+	rm $(NAME) 2>/dev/null && echo "RM $(NAME)" || :
+
+
+# Build again
+re: fclean all
+
+
 FORCE: ;
 
+
 .PHONY: clean fclean re FORCE
+
 
 # Assign a value to VERBOSE to enable verbose output
 $(VERBOSE).SILENT:
