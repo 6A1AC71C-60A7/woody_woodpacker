@@ -18,6 +18,7 @@ $(addprefix srcs/,\
 	genkey.c\
 	inject_decryptor.c\
 	lookup_sections.c\
+	lookup_segments.c\
 	main.c\
 	map_elf.c\
 	parse_opts.c\

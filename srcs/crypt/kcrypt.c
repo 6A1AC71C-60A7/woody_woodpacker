@@ -1,4 +1,5 @@
 
+#include <stdio.h>
 #include <wd_crypt.h>
 
 /**
@@ -8,7 +9,7 @@
  * @param plaintext_len The lenght in bytes of the data to be encrypted.
  * @param key 64 bit key used for encryption/decryption.
  */
-void	kcrypt_X86_64(ubyte* const plaintext, uqword plaintext_len, uqword key)
+uqword	kcrypt_X86_64(ubyte* const plaintext, uqword plaintext_len, uqword key)
 {
 #ifndef KCRYPT_OPIMIZE
 
@@ -25,48 +26,71 @@ void	kcrypt_X86_64(ubyte* const plaintext, uqword plaintext_len, uqword key)
 	}
 
 #else
+	uqword	ret;
 
 	__asm__ volatile (
 
-		/* %r8 is the plaintext's offset */
+		/* %r8 = data_offset */
 		"xor %%r8, %%r8\n"
 
+		/* %rax = count_iterator */
+		"xor %[ret], %[ret]\n"
+
 		/* %rdi = plaintext ; %rsi = &key */
-		"mov %0, %%rdi\n"
-		"lea %2, %%rsi\n"
+		"mov %[plain_text], %%rdi\n"
+		"lea %[key], %%rsi\n"
 
 		"encrypt_byte%=:\n"
 
-		/* %rdx = offset % 8 (offset & 7 is faster) */
-		"mov %%r8, %%rdx\n"
+		/* cipher_char: r10b = plain_text[data_offset]*/
+		"movb (%%rdi,%%r8,1), %%r10b\n"
+
+		/* if cipher_char == '\0' goto skip_byte */
+//		"testb %%r10b, %%r10b\n"
+//		"jz skip_byte%=\n"
+
+		/* %rdx = key_offset = count_offset % 8 */
+		"mov %[ret], %%rdx\n"
 		"and $7, %%rdx\n"
 
-		/* %r11b = ((*ubyte)&key)[offset % 8] */
-		"movb (%%rsi,%%rdx,1), %%r11b\n"
+		/* count_iterator++ */
+		"inc %[ret]\n"
 
-		/* plaintext[offset] ^= ((*ubyte)&key)[offset % 8] */
-		"xorb %%r11b, (%%rdi,%%r8,1)\n"
+		/* key_char: r9b = key_str[key_offset] */
+		"movb (%%rsi,%%rdx,1), %%r9b\n"
 
-		/* plaintext[offset] = ~plaintext[offset] */
-		"notb (%%rdi,%%r8,1)\n"
+		// /* cipher_char ^= key_char */
+		// "xorb $2, %%r10b\n"
 
-		"movb %%dl, %%cl\n"
-		"rorb %%cl, (%%rdi,%%r8,1)\n"
+		// /* cipher_char = ~cipher_char */
+		"notb %%r10b\n"
 
-		/* plaintext[offset] += ((*ubyte)&key)[offset % 8] */
-		"addb %%r11b, (%%rdi,%%r8,1)\n"
+		// /* ROTR(cipher_char, key_offset) */
+		// "movb %%dl, %%cl\n"
+		// "rorb %%cl, %%r10b\n"
 
-		/* offset++ */
+		// /* cipher_char += key_char */
+		//"addb %%r9b, %%r10b\n"
+
+		// /* plain_text[data_offset] = cipher_char */
+		"movb %%r10b, (%%rdi,%%r8,1)\n"
+
+		"skip_byte%=:\n"
+
+		/* data_offset++ */
 		"inc %%r8\n"
 
 		/* if (offset < plaintext_len) goto encrypt_byte */
-		"cmp %1, %%r8\n"
+		"cmp %[len], %%r8\n"
 		"jb encrypt_byte%=\n"
 
-		:
-		: "g" (plaintext), "g" (plaintext_len), "g" (key)
+		: [ret] "=r" (ret)
+		: [plain_text] "g" (plaintext), [len] "g" (plaintext_len), [key] "g" (key)
 		: "rdi", "rsi", "rcx", "rdx", "r8", "r9", "r10", "r11", "cc"
 	);
 
+
 #endif
+	dprintf(2, "kcrypt: in %zu, initialized chars %zu\n", plaintext_len, ret);
+	return (ret);
 }

@@ -21,6 +21,7 @@ SRCS	=	$(addprefix $(SRCDIR)/, $(addsuffix .S, \
 	htoi \
 	itoh \
 	itop \
+	kdecrypt \
 	mfind \
 	minfo \
 	next_field \

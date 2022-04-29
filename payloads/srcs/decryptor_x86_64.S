@@ -7,13 +7,15 @@
 %define rbuffer r12
 %define rmaps_fd r13
 %define rn r14
-%define rkey_str r15
+%define rkey r15
 
 section .text.startup
 
 ;extern putminfo
-;extern putnbr
+extern putnbr
+extern mdump
 extern mfind
+extern kdecrypt
 
 extern main
 
@@ -49,22 +51,13 @@ _start:
 	mov rax, rn
 	shl rax, 4						; key_offset: rax = n * 16
 
-	lea rkey_str, [rchunk + rax]	; key_str = chunks[key_offset]
+	lea rkey, [rchunk + rax]		; key = chunks[key_offset]
 
 	xor rcx, rcx					; length: rcx = 0
 	mov rdi, rbuffer				; line: rdi = rbuffer
 
 ; Registers to preserve: line: rdi, length: rcx
 decrypt_chunk:
-;	push rcx
-;	push rdi
-;	mov edi, STDOUT_FILENO
-;	mov rsi, rn
-;	mov dl, `\n`
-;	call putnbr
-;	pop rdi
-;	pop rcx
-
 	add rcx, rdi
 	sub rcx, rbuffer				; length: rcx = line_end - buffer_data
 	mov rdi, rbuffer				; line: rdi = buffer
@@ -76,17 +69,28 @@ decrypt_chunk:
 	call mfind						; mfind(line, fd, buffer, sminfo, vaddr, filter)
 	mov [rchunk + schunk.vaddr], rax; rchunk.vaddr = rchunk.vaddr - rminfo.vaddr + rminfo.start
 
-;	push rdi
-; 	push rcx
-; 	mov dl, `\n`
-; 	mov rsi, rax
-; 	mov edi, STDOUT_FILENO
-; 	call putnbr
-; 	pop rcx
-; 	pop rdi
+	push rdi
+ 	push rcx
+
+ 	mov dl, `\n`
+ 	mov rsi, rn
+ 	mov edi, STDOUT_FILENO
+ 	call putnbr
+
+ 	mov dl, `\n`
+ 	mov rsi, [rchunk + schunk.size]
+ 	mov edi, STDOUT_FILENO
+ 	call putnbr
+ 	pop rcx
+ 	pop rdi
 
 	push rdi						; Preserve line
 	push rcx						; Preserve length
+
+;	mov edi, STDOUT_FILENO
+;	mov rsi, rn
+;	mov dl, `\n`
+;	call putnbr
 
 	mov rdi, [rminfo + sminfo.start]
 	mov rsi, [rminfo + sminfo.end]
@@ -95,50 +99,43 @@ decrypt_chunk:
 	mov rax, SYS_MPROTECT
 	syscall							; mprotect(map_start, map_end - map_start, PROT_RWX)
 
+	mov rdi, rchunk
+	mov rsi, "cipher0"
+	mov rdx, rn
+	call dump_chunk
+
+	mov rdi, [rchunk + schunk.vaddr]
+	mov rsi, [rchunk + schunk.size]
+	mov rdx, rkey
+	call kdecrypt
+
+	mov rdi, rchunk
+	mov rsi, "plaint0"
+	mov rdx, rn
+	call dump_chunk
+
+ 	mov dl, `\n`
+	mov edi, STDOUT_FILENO
+	mov rsi, [rchunk + schunk.vaddr]
+	call putnbr
+
 	pop rcx							; Restore length
 	pop rdi							; Restore line
 
-.term_msg:
-	xor r8, r8						; data_iterator: r8 = 0
-
-.byte:
-	push rcx
-
-	mov rdx, r8
-	and rdx, 7						; key_offset: rdx = data_iterator % 8
-
-	mov r9b, BYTE [rkey_str + rdx]	; key_c: r9b = key_str[key_offset]
-
-	mov r11, [rchunk + schunk.vaddr]
-	sub BYTE [r11 + r8], r9b		; cipher_text[data_iterator] -= key_c
-
-	mov cl, dl
-	rol BYTE [r11 + r8], cl			; ROTL(cipher_text[data_iterator], key_offset)
-
-	not BYTE [r11 + r8]				; cipher_text[data_iterator] = ~cipher_text[data_iterator]
-
-	xor BYTE [r11 + r8], r9b		; cipher_text[data_iterator] ^= key_c
-
-	inc r8							; data_iterator: r8 += 1
-
-	pop rcx
-
-	cmp r8, [rchunk + schunk.size]
-	jb .byte						; if data_iterator >= chunk_size
 	add rchunk, schunk_size			; rchunk += schunk_size
 
 	dec rn
-	js end							; if rn >= 0
+	js end							; if rn == -1
+
 	test rn, rn
 	jnz decrypt_chunk				; if chunk_iterator == 0
-	lea rax, [rchunk + 8]
 
-	sub rchunk, schunk_size			; rchunk -= schunk_size
+	lea rax, [rchunk + 8]			; woody_str: rax = last_chunk + 8
 
-	mov [rchunk + schunk.vaddr], rax
-	mov QWORD [rchunk + schunk.size], TERM_MSG_SIZE
-
-	jmp .term_msg					; Decrypt woody string
+	mov rdi, rax
+	mov rsi, TERM_MSG_SIZE
+	mov rdx, rkey
+	call kdecrypt
 
 end:
 	add rcx, rdi
@@ -191,5 +188,38 @@ end:
 	pop rdx
 	pop rcx
 	pop rax
+
+	ret
+
+; chunk: rdi, prefix: rsi, chunk_no: dl
+dump_chunk:
+	sub dl, 1
+	push rsi
+	add BYTE [rsp + 6], dl
+
+	mov r8, rdi
+
+	mov rdi, rsp
+	mov rsi, O_WRONLY | O_CREAT | O_TRUNC
+	mov rdx, S_IRUSR | S_IWUSR
+	mov rax, SYS_OPEN
+	syscall
+
+	mov rsi, [r8 + schunk.vaddr]
+	mov rdx, [r8 + schunk.size]
+
+	pop r8
+
+	push rax
+
+	mov edi, eax
+	mov rax, SYS_WRITE
+	syscall
+
+	pop rax
+
+	mov rdi, rax
+	mov rax, SYS_CLOSE
+	syscall
 
 	ret

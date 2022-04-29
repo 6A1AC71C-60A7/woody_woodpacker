@@ -67,6 +67,8 @@ static inline err_t parse_elf(const char* filename, parse_t* const parse,
 	{
 		case ELFCLASS64:
 			map->entry_point = GET_ELF_ENTRY_POINT_X86_64(map->addr);
+			if ((st = lookup_segments_X86_64(parse, map, targets_crypt, targets_decrypt)) != SUCCESS)
+				goto end;
 			if ((st = lookup_sections_X86_64(parse, map, targets_crypt, targets_decrypt)) != SUCCESS)
 				goto end;
 			arch->kcrypt = &kcrypt_X86_64;
@@ -165,6 +167,9 @@ int main(int ac, const char* av[])
 		goto end;
 
 	encrypt_chunks(targets_crypt, parse.key, arch.kcrypt);
+
+//	write(open("test", O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR), targets_crypt[2].start, targets_crypt[2].nbytes);
+
 
 	arch.prepare_decryptor(&map, &decryptor);
 

@@ -14,8 +14,10 @@ woody_woodpacker
 # Local scripts
 gensources.sh
 
-# miscelaneous
+# Debug
 on_test
+cipher*
+plaint*
 
 # clangd
 .cache/

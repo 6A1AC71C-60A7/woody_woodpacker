@@ -52,7 +52,7 @@ typedef err_t (*prepare_decryptor_t)(const elf_map_t *const map,
 typedef err_t (*build_decryptor_t)(decryptor_t* const dest,
 	const parse_t* const in, const crypt_pair_t* const targets, uqword ep);
 
-typedef void (*kcrypt_t)(ubyte* const plaintext, uqword plaintext_len, uqword key);
+typedef uqword (*kcrypt_t)(ubyte* const plaintext, uqword plaintext_len, uqword key);
 
 typedef void (*inject_decryptor_t)(elf_map_t* const map, const decryptor_t* const dec);
 
@@ -70,6 +70,8 @@ uqword	genkey();
 err_t	map_elf(const char* filename, elf_map_t* const map);
 
 err_t	lookup_sections_X86_64(const parse_t* const in, const elf_map_t* map,
+		crypt_pair_t* const target_crypt, crypt_pair_t* const target_decrypt);
+err_t	lookup_segments_X86_64(const parse_t* const in, const elf_map_t* map,
 		crypt_pair_t* const target_crypt, crypt_pair_t* const target_decrypt);
 err_t	prepare_decryptor_x86_64(const elf_map_t *const map, decryptor_t* const dec);
 err_t	build_decryptor_x86_64(decryptor_t* const dest, const parse_t* const in,
