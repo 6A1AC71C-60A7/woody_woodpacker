@@ -168,20 +168,7 @@ int main(int ac, const char* av[])
 
 	encrypt_chunks(targets_crypt, parse.key, arch.kcrypt);
 
-//	write(open("test", O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR), targets_crypt[2].start, targets_crypt[2].nbytes);
-
-
 	arch.prepare_decryptor(&map, &decryptor);
-
-	for (uqword i = 0; i < ARRLEN(targets_decrypt); i++)
-	{
-		// if the chunk to decrypt starts after or at the decrypto's offset
-		if ((uqword)targets_decrypt[i].start >= decryptor.vaddr)
-		{
-			dprintf(2, "relocating targets_decrypt %zu\n", i);
-			targets_decrypt[i].start += page_size;
-		}
-	}
 
 	///TODO: Decryptor must start pushing the true value of the EP for be able to return to it at the end
 	if ((st = arch.build_decryptor(&decryptor, &parse, targets_decrypt, map.entry_point)) != SUCCESS)

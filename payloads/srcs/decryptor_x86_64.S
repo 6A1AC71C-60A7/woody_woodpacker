@@ -11,7 +11,7 @@
 
 section .text.startup
 
-;extern putminfo
+extern putminfo
 extern putnbr
 extern mdump
 extern mfind
@@ -76,6 +76,11 @@ decrypt_chunk:
  	mov rsi, rn
  	mov edi, STDOUT_FILENO
  	call putnbr
+
+
+	mov edi, STDOUT_FILENO
+	mov rsi, rminfo
+	call putminfo
 
  	mov dl, `\n`
  	mov rsi, [rchunk + schunk.size]
@@ -147,10 +152,6 @@ end:
 	mov r9, [rchunk + EP_OFFSET]	; Load real entrypoint pointer
 	mov r10b, PROT_EXEC					; filter: r10b = PROT_EXEC
 	call mfind							; mfind(line, fd, buffer, length, sminfo, filter)
-
-;	mov edi, STDOUT_FILENO
-;	mov rsi, rminfo
-;	call putminfo
 
 	mov [rchunk + EP_OFFSET], rax		; Overwrite entrypoint
 

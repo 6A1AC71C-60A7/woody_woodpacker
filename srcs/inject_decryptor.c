@@ -148,7 +148,6 @@ void	inject_decryptor_X86_64_rev(elf_map_t* const map, ubyte* decryptor, uqword 
 	const uqword		rounded_size = PAGE_ROUND(decryptor_size);
 	uqword				segment_i = 0;
 	uqword				section_i;
-//	uqword				text_vaddr;
 	uqword				orig_text_vaddr;
 	uqword				text_offset;
 
@@ -175,8 +174,6 @@ void	inject_decryptor_X86_64_rev(elf_map_t* const map, ubyte* decryptor, uqword 
 	dprintf(2, "expanded text: offset: %lx, virt addr: %lx, file size: %lx\n",
 		ph[segment_i].p_offset, ph[segment_i].p_vaddr, ph[segment_i].p_filesz);
 
-	// Get new text segment virtual address
-	//text_vaddr = ph[segment_i].p_vaddr;
 	// Get text segment file offset
 	text_offset = ph[segment_i].p_offset;
 
@@ -209,10 +206,7 @@ void	inject_decryptor_X86_64_rev(elf_map_t* const map, ubyte* decryptor, uqword 
 	dprintf(2, "rounded size:       %zx\n", rounded_size);
 	dprintf(2, "original file size: %zx\n",  map->size);
 	dprintf(2, "moving from %p to %p (+%zx), size: %zx\n", header + 1, (void*)(header + 1) + rounded_size, rounded_size, map->size - sizeof(*header));
-//	ft_memmove((void*)(header + 1) + rounded_size, (void*)(header + 1), map->size - sizeof(*header));
 	ft_memmove((void*)(header) + rounded_size, (void*)(header) + text_offset, map->size - sizeof(*header));
-	//dprintf(2, "injecting payload at 0x%zx, size: %zx\n",  text_offset, decryptor_size);
-//	ft_memcpy((void*)(header + 1), decryptor, decryptor_size);
 	ft_memcpy((void*)(header + 1), decryptor, decryptor_size);
 
 

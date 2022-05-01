@@ -64,16 +64,14 @@ err_t lookup_sections_X86_64(const parse_t* const in, const elf_map_t* map,
 				if (in->opts & O_SELECTSEC && !(in->sections & (1 << y)))
 					continue;
 
-				dprintf(2, "Found target %zu -> section %s at 0x%zx\n", amount, section_names + shdr[i].sh_name, shdr[i].sh_addr);
+				dprintf(2, "Found target %zu -> section %s at 0x%zx\n",
+					amount, section_names + shdr[i].sh_name, shdr[i].sh_addr);
 
-				for (uqword z = 0; target_crypt[z].start; z++)
-				{
-					if ((uqword)target_decrypt[z].start <= shdr[i].sh_addr && shdr[i].sh_addr < (uqword)target_decrypt[z].start + target_decrypt[i].nbytes)
-						dprintf(2, "Warning! Overlap with target %zu!\n", z);
-				}
 				target_crypt[amount].nbytes = target_decrypt[amount].nbytes = shdr[i].sh_size;
 				target_crypt[amount].start = map->addr + shdr[i].sh_offset;
+				target_crypt[amount].type = CH_SECTION;
 				target_decrypt[amount].start = (void*)shdr[i].sh_addr;
+				target_decrypt[amount].type = CH_SECTION;
 				amount++;
 			}
 		}

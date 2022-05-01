@@ -34,10 +34,17 @@ typedef uint64_t	uqword;
 # define PRIXd	PRIX32
 # define PRIXq	PRIX64
 
+typedef enum		chunk_e
+{
+	CH_SEGMENT,
+	CH_SECTION,
+}					chunk_t;
+
 typedef struct		crypt_pair
 {
 	void*			start;
 	uqword			nbytes;
+	chunk_t			type;
 }					crypt_pair_t;
 
 typedef enum		section

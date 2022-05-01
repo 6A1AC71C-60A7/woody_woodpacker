@@ -43,6 +43,7 @@ inline static Elf64_Shdr	*find_section(const elf_map_t* map, uqword offset, uqwo
 err_t lookup_segments_X86_64(const parse_t* const in, const elf_map_t* map,
 		crypt_pair_t* const target_crypt, crypt_pair_t* const target_decrypt)
 {
+	(void) in;
 	/**
 	 * NOTE: Compilers can be configured to build PIE (Position Independent Executable)
 	 * by default. Which have the type ET_DYN (Shared Object File) instead of ET_EXEC.
@@ -85,7 +86,9 @@ err_t lookup_segments_X86_64(const parse_t* const in, const elf_map_t* map,
 				dprintf(2, "Found target %zu -> segment %zu at 0x%lx\n",amount,ph_i, phdr[ph_i].p_offset);
 				target_crypt[amount].nbytes = target_decrypt[amount].nbytes = phdr[ph_i].p_filesz;
 				target_crypt[amount].start = map->addr + phdr[ph_i].p_offset;
+				target_crypt[amount].type = CH_SEGMENT;
 				target_decrypt[amount].start = (void*)phdr[ph_i].p_vaddr;
+				target_decrypt[amount].type = CH_SEGMENT;
 				amount++;
 			}
 		}

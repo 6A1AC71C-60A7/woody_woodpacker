@@ -50,9 +50,9 @@ typedef struct	decryptor
 typedef err_t (*prepare_decryptor_t)(const elf_map_t *const map,
 	decryptor_t* const dec);
 typedef err_t (*build_decryptor_t)(decryptor_t* const dest,
-	const parse_t* const in, const crypt_pair_t* const targets, uqword ep);
+	const parse_t* const in, crypt_pair_t* const targets, uqword ep);
 
-typedef uqword (*kcrypt_t)(ubyte* const plaintext, uqword plaintext_len, uqword key);
+typedef void (*kcrypt_t)(ubyte* const plaintext, uqword plaintext_len, uqword key);
 
 typedef void (*inject_decryptor_t)(elf_map_t* const map, const decryptor_t* const dec);
 
@@ -75,7 +75,7 @@ err_t	lookup_segments_X86_64(const parse_t* const in, const elf_map_t* map,
 		crypt_pair_t* const target_crypt, crypt_pair_t* const target_decrypt);
 err_t	prepare_decryptor_x86_64(const elf_map_t *const map, decryptor_t* const dec);
 err_t	build_decryptor_x86_64(decryptor_t* const dest, const parse_t* const in,
-		const crypt_pair_t* const targets, uqword ep);
+		crypt_pair_t* const targets, uqword ep);
 void	inject_decryptor_X86_64(elf_map_t* const map, const decryptor_t* const dec);
 
 void	encrypt_chunks(const crypt_pair_t* const chunks, uqword key, kcrypt_t kcrypt);

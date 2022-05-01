@@ -10,38 +10,29 @@ global kdecrypt
 
 ; cipher_text: rdi, length: rsi, key: rdx
 kdecrypt:
-	xor ri, ri						; data_iterator: ri = 0
-	xor rax, rax					; count_iterator: rax = 0
+	xor ri, ri						; data_offset: ri = 0
 
 .byte:
-	mov	rcipher_c, BYTE [rdi + ri]		; rcipher_c =  cipher_text[data_iterator]
+	mov	rcipher_c, BYTE [rdi + ri]	; rcipher_c =  cipher_text[data_offset]
 
-;	test rcipher_c, rcipher_c					; if rcipher_c == '\0'
-;	jz .skip_byte
-
-	mov rcx, rax
+	mov rcx, ri
 	and rcx, 7						; key_offset: rcx = count_iterator % 8
-
 
 	mov rkey_c, BYTE [rdx + rcx]	; rkey_c = key_str[key_offset]
 
-	; sub rcipher_c, rkey_c					; rcipher_c: rcipher_c -= rkey_c
+	sub rcipher_c, rkey_c			; rcipher_c: rcipher_c -= rkey_c
 
-	; mov cl, dl						; rot_offset: cl = key_offset
-	; rol rcipher_c, cl						; ROTL(rcipher_c, rot_offset)
+	rol BYTE rcipher_c, cl			; ROTL(rcipher_c, rot_offset)
 
-	not rcipher_c						; rcipher_char = ~rcipher_char
+	not rcipher_c					; rcipher_char = ~rcipher_char
 
-	; xor BYTE rcipher_c, 2				; rcipher_char ^= rkey_c
+	xor BYTE rcipher_c, 2			; rcipher_char ^= rkey_c
 
-	mov	 BYTE [rdi + ri], rcipher_c	; rcipher_c: rcipher_c =  cipher_text[data_iterator]
+	mov BYTE [rdi + ri], rcipher_c	; rcipher_c =  cipher_text[data_offset]
 
-	inc rax							; count_iterator: rax += 1
+	inc ri							; data_offset: ri += 1
 
-.skip_byte:
-	inc ri							; data_iterator: ri += 1
-
-	cmp rax, rsi
-	jb .byte						; if data_iterator >= chunk_size
+	cmp ri, rsi
+	jb .byte						; if data_offset >= chunk_size
 
 	ret

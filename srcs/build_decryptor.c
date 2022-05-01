@@ -1,4 +1,5 @@
 
+#include "wd_parse.h"
 #include <stdio.h>
 #include <woody_woodpacker.h>
 #include <wd_types.h>
@@ -178,6 +179,22 @@ static inline void build_stack_initializer_x86_64(ubyte* const dest, uqword* con
 	memcpy_offset(dest, op_mov_push, ARRLEN(op_mov_push), offset);
 }
 
+__attribute__((always_inline))
+static inline void	target_fixup(crypt_pair_t* const targets,
+	const decryptor_t* const decryptor)
+{
+	for (uqword i = 0; i < PAIRARR_LEN; i++)
+	{
+		// if the chunk to decrypt starts after or at the decryptor's offset
+		if (targets[i].type == CH_SEGMENT
+		&& (uqword)targets[i].start >= decryptor->vaddr)
+		{
+			dprintf(2, "relocating targets %zu\n", i);
+			targets[i].start += page_size;
+		}
+	}
+}
+
 /**
  * @brief Builds the woody's decryptor using user's input.
  *
@@ -189,7 +206,7 @@ static inline void build_stack_initializer_x86_64(ubyte* const dest, uqword* con
  * @param ep The real ELF entrypoint (where control will be transfered after the decryptor).
  */
 err_t build_decryptor_x86_64(decryptor_t* const dest, const parse_t* const in,
-		const crypt_pair_t* const targets, uqword ep)
+		crypt_pair_t* const targets, uqword ep)
 {
 	//uqword payload_size;
 	uqword offset = 0;
@@ -198,6 +215,7 @@ err_t build_decryptor_x86_64(decryptor_t* const dest, const parse_t* const in,
 	///TODO: Probally for test RETN is needed but whether the injected decryptor returns to another segment RETF will be necesary
 	/// https://stackoverflow.com/questions/1396909/ret-retn-retf-how-to-use-them
 
+	target_fixup(targets, dest);
 	dest->size = get_decryptor_size_x86_64(in, targets);
 
 	if ((dest->data = (ubyte*)malloc(sizeof(ubyte) * dest->size)) == NULL)
