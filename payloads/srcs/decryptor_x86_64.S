@@ -69,6 +69,7 @@ decrypt_chunk:
 	call mfind						; mfind(line, fd, buffer, sminfo, vaddr, filter)
 	mov [rchunk + schunk.vaddr], rax; rchunk.vaddr = rchunk.vaddr - rminfo.vaddr + rminfo.start
 
+
 	push rdi
  	push rcx
 
@@ -76,7 +77,6 @@ decrypt_chunk:
  	mov rsi, rn
  	mov edi, STDOUT_FILENO
  	call putnbr
-
 
 	mov edi, STDOUT_FILENO
 	mov rsi, rminfo
@@ -86,8 +86,10 @@ decrypt_chunk:
  	mov rsi, [rchunk + schunk.size]
  	mov edi, STDOUT_FILENO
  	call putnbr
+
  	pop rcx
  	pop rdi
+
 
 	push rdi						; Preserve line
 	push rcx						; Preserve length
@@ -124,53 +126,60 @@ decrypt_chunk:
 	mov rsi, [rchunk + schunk.vaddr]
 	call putnbr
 
+	add rchunk, schunk_size			; rchunk += schunk_size
+
 	pop rcx							; Restore length
 	pop rdi							; Restore line
 
-	add rchunk, schunk_size			; rchunk += schunk_size
-
 	dec rn
-	js end							; if rn == -1
 
 	test rn, rn
-	jnz decrypt_chunk				; if chunk_iterator == 0
+	jnz decrypt_chunk				; while chunk_iterator != 0
 
-	lea rax, [rchunk + 8]			; woody_str: rax = last_chunk + 8
 
-	mov rdi, rax
+	push rdi
+	push rcx
+
+	lea rdi, [rchunk + 8]			; woody_str: rax = last_chunk + 8
 	mov rsi, TERM_MSG_SIZE
 	mov rdx, rkey
-	call kdecrypt
+	call kdecrypt					; kdecrypt(woody_str, TERM_MSG_SIZE, key)
 
+	pop rcx
+	pop rdi
 end:
 	add rcx, rdi
 	sub rcx, rbuffer				; length: rcx = line_end - buffer_data
 	mov rdi, rbuffer				; line: rdi = buffer
 	mov rsi, rmaps_fd				; fd: rsi = rmaps_fd
 	mov rdx, rbuffer				; buffer: rdx = rbuffer
-	mov r8, rminfo						; sminfo: r8 = rsminfo
-	mov r9, [rchunk + EP_OFFSET]	; Load real entrypoint pointer
-	mov r10b, PROT_EXEC					; filter: r10b = PROT_EXEC
-	call mfind							; mfind(line, fd, buffer, length, sminfo, filter)
+	mov r8, rminfo					; sminfo: r8 = rsminfo
+	mov r9, [rchunk + EP_OFFSET]	; vaddr: r9 = entrypoint
+	mov r10b, PROT_EXEC				; filter: r10b = PROT_EXEC
+	call mfind						; mfind(line, fd, buffer, length, sminfo, filter)
 
-	mov [rchunk + EP_OFFSET], rax		; Overwrite entrypoint
+	mov [rchunk + EP_OFFSET], rax	; Overwrite entrypoint
 
-;	mov edi, STDOUT_FILENO
-;	mov rsi, rax
-;	mov dl, `\n`
-;	call putnbr
+	mov edi, STDOUT_FILENO
+	mov rsi, rax
+	mov dl, `\n`
+	call putnbr
 
-	mov rsp, rchunk
+	mov rdi, rmaps_fd
+	mov rax, SYS_CLOSE
+	syscall							; close(maps_fd)
+
+	lea rsp, [rchunk + 8]			; rsp = msg = last_chunk + 8
 
 	mov rax, SYS_WRITE
 	mov rdi, STDOUT_FILENO
-	lea rsi, [rchunk + 8]
+	mov rsi, rsp
 	mov rdx, TERM_MSG_SIZE
-	syscall								; write(STDOUT_FILENO, chunk_vaddr, chunk_size)
+	syscall							; write(STDOUT_FILENO, chunk_vaddr, chunk_size)
 
-	add rsp, 8 + TERM_MSG_SIZE
+	add rsp, TERM_MSG_SIZE			; rsp += TERM_MSG_SIZE
 
-	call main
+;	call main
 
 	; Restore original register state
 	popfq

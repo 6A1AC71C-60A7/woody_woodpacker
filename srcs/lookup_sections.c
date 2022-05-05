@@ -65,9 +65,11 @@ err_t lookup_sections_X86_64(const parse_t* const in, const elf_map_t* map,
 				dprintf(2, "Found target %zu -> section %s at 0x%zx\n",
 					amount, section_names + shdr[i].sh_name, shdr[i].sh_addr);
 
-				target_crypt[amount].nbytes = target_decrypt[amount].nbytes = shdr[i].sh_size;
+				target_crypt[amount].nbytes = shdr[i].sh_size;
 				target_crypt[amount].start = map->addr + shdr[i].sh_offset;
 				target_crypt[amount].type = CH_SECTION;
+
+				target_decrypt[amount].nbytes = shdr[i].sh_size;
 				target_decrypt[amount].start = (void*)shdr[i].sh_addr;
 				target_decrypt[amount].type = CH_SECTION;
 				amount++;

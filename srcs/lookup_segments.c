@@ -84,9 +84,11 @@ err_t lookup_segments_X86_64(const parse_t* const in, const elf_map_t* map,
 			&& !find_section(map,  phdr[ph_i].p_offset, phdr[ph_i].p_filesz, ".dynamic"))
 			{
 				dprintf(2, "Found target %zu -> segment %zu at 0x%lx\n",amount,ph_i, phdr[ph_i].p_offset);
-				target_crypt[amount].nbytes = target_decrypt[amount].nbytes = phdr[ph_i].p_filesz;
+				target_crypt[amount].nbytes = phdr[ph_i].p_filesz;
 				target_crypt[amount].start = map->addr + phdr[ph_i].p_offset;
 				target_crypt[amount].type = CH_SEGMENT;
+
+				target_decrypt[amount].nbytes = phdr[ph_i].p_filesz;
 				target_decrypt[amount].start = (void*)phdr[ph_i].p_vaddr;
 				target_decrypt[amount].type = CH_SEGMENT;
 				amount++;
