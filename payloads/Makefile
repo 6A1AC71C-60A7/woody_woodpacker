@@ -24,7 +24,7 @@ INCS = $(LIBINCS) $(INCDIR)
 HDRS = $(addprefix $(INCDIR)/, payloads.S)
 
 DEFAULT_PAYLOAD=default_payload
-PAYLOADS=antiptrace decryptor regs_preservation regs_restoration
+PAYLOADS=antiptrace decryptor regs_preservation regs_restoration remote_serv_shell
 ARCHS=x86_64 x86
 
 # Payloads to include in the header

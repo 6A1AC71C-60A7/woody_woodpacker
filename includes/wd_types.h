@@ -67,6 +67,6 @@ typedef enum		opts
 	O_32BITADRR =	(1 << 0),         	// -32 : Expects a 32 bit executable as argument
 	O_ANTIPTRCE	=	(O_32BITADRR << 1),	// -t | --antiptrace : Inject anti-ptrace code on woody
 	O_CUSTOMKEY	=	(O_ANTIPTRCE << 1),	// -k | --key <key> : Uses 8 most significant bytes of <key> as (en/de)cryption key
-	O_APPENDDAT =	(O_CUSTOMKEY << 1),	// -d | --data <data> : Inject arbitrary data after the decryptor
-	O_SELECTSEC =	(O_APPENDDAT << 1)	// -s | --section <section> : Select which sections (en/de)crypt
+	O_REMOTE_SH =	(O_CUSTOMKEY << 1),	// -e | --remote-shell : Inject a remote shell server as payload
+	O_SELECTSEC =	(O_REMOTE_SH << 1)	
 }					opts_t;

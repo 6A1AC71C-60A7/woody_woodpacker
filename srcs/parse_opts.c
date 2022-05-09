@@ -54,11 +54,11 @@ error:
 	return false;
 }
 
-static bool	handle_data_arg(const char** arg, parse_t* const parse)
-{
-	parse->data = (const ubyte*)*arg;
-	return true;
-}
+// static bool	handle_data_arg(const char** arg, parse_t* const parse)
+// {
+// 	parse->data = (const ubyte*)*arg;
+// 	return true;
+// }
 
 static bool	handle_key_arg(const char** arg, parse_t* const parse)
 {
@@ -108,11 +108,11 @@ static const struct
 		.handle = &handle_key_arg
 	},
 	{
-		.s_opt = O_APPENDDAT_SSTR,
-		.s_opt_len = sizeof(O_APPENDDAT_SSTR),
-		.l_opt = O_APPENDDAT_LSTR,
-		.l_opt_len = sizeof(O_APPENDDAT_LSTR),
-		.handle = &handle_data_arg
+		.s_opt = O_REMOTE_SH_SSTR,
+		.s_opt_len = sizeof(O_REMOTE_SH_SSTR),
+		.l_opt = O_REMOTE_SH_LSTR,
+		.l_opt_len = sizeof(O_REMOTE_SH_LSTR),
+		.handle = NULL
 	},
 	{
 		.s_opt = O_SELECTSEC_SSTR,

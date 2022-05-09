@@ -69,8 +69,8 @@ static inline err_t parse_elf(const char* filename, parse_t* const parse,
 			map->entry_point = GET_ELF_ENTRY_POINT_X86_64(map->addr);
 			if ((st = lookup_segments_X86_64(parse, map, targets_crypt, targets_decrypt)) != SUCCESS)
 				goto end;
-			if ((st = lookup_sections_X86_64(parse, map, targets_crypt, targets_decrypt)) != SUCCESS)
-				goto end;
+			// if ((st = lookup_sections_X86_64(parse, map, targets_crypt, targets_decrypt)) != SUCCESS)
+			// 	goto end;
 			arch->kcrypt = &kcrypt_X86_64;
 			arch->prepare_decryptor = &prepare_decryptor_x86_64;
 			arch->build_decryptor = &build_decryptor_x86_64;
@@ -101,7 +101,7 @@ end:
 __attribute__ ((always_inline))
 static inline err_t	write_woody_file(void* buff, uqword bufflen, udword mode)
 {
-	const int fd = open("woody", O_CREAT | O_RDWR, mode);
+	const int fd = open("woody", O_CREAT | O_RDWR | O_TRUNC, mode);
 
 	if (fd < 0)
 	{

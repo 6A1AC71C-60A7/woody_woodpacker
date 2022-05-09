@@ -89,7 +89,11 @@ err_t	map_elf(const char* filename, elf_map_t* const map)
 		FERROR(EFORMAT_WRAPPER, "mmap", errno, strerror(errno));
 		return EWRAPPER;
 	}
-	read(fd, map->addr, map->size);
+	if (read(fd, map->addr, map->size) < 0)
+	{
+		FERROR(EFORMAT_WRAPPER, "read", errno, strerror(errno));
+		return EWRAPPER;
+	}
 
 	return validate_format(map);
 }
