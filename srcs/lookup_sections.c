@@ -52,9 +52,7 @@ err_t lookup_sections_X86_64(const parse_t* const in, const elf_map_t* map,
 	for (uqword i = 1 ; i < ehdr->e_shnum ; i++)
 	{
 		static const char* const tofind[] = {
-//			".rodata",
 			".data",
-//			".text"
 		};
 
 		for (uqword y = 0 ; y < ARRLEN(tofind) ; y++)

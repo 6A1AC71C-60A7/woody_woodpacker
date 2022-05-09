@@ -22,10 +22,7 @@
 ///TODO: Endianless must be handled
 ///TODO: Restore mapping protections after decryption
 ///ENHANCEMENT: Size check to avoid segfault on corrupted ELF files
-///ENHANCEMENT: Error check for stripped ELF files (no symbols)
-///NOTE: For the moment i'll treat the EP like an offset
-///TODO: Inject the decryptor (after ending the TODO of 'inject_decryptor.c' and 'build_decryptor.c')
-///TODO: 32 bits files handling
+///ENHANCEMENT: 32 bit files management
 
 __attribute__ ((always_inline))
 static inline bool user_asks_for_help(const char* s)
@@ -69,6 +66,7 @@ static inline err_t parse_elf(const char* filename, parse_t* const parse,
 			map->entry_point = GET_ELF_ENTRY_POINT_X86_64(map->addr);
 			if ((st = lookup_segments_X86_64(parse, map, targets_crypt, targets_decrypt)) != SUCCESS)
 				goto end;
+			///TODO: FIND WHY
 			// if ((st = lookup_sections_X86_64(parse, map, targets_crypt, targets_decrypt)) != SUCCESS)
 			// 	goto end;
 			arch->kcrypt = &kcrypt_X86_64;
@@ -144,41 +142,28 @@ int main(int ac, const char* av[])
 	}
 	++av;
 
-	///NOTE: Uncomment for decryption and/or payload testing
-	//test_crypt_payload();
-	//test_crypt();
-//return 0;
-
 	if (ac == 1 || user_asks_for_help(*av) == true)
 	{
 		display_usage();
 		goto end;
 	}
 
-	///TODO: Join these 'if's in a single one if i will never call freeing routines (munmap & free)
-
-	if ((st = parse_opts(&av, &parse)) != SUCCESS)
-		goto end;
-
-	if ((st = parse_elf(*av, &parse, &map, &arch)) != SUCCESS)
-		goto end;
-
-	if ((st = handle_key(&parse)) != SUCCESS)
+	if ((st = parse_opts(&av, &parse)) != SUCCESS
+	|| (st = parse_elf(*av, &parse, &map, &arch)) != SUCCESS
+	|| (st = handle_key(&parse)) != SUCCESS)
 		goto end;
 
 	encrypt_chunks(targets_crypt, parse.key, arch.kcrypt);
 
-	arch.prepare_decryptor(&map, &decryptor);
-
-	///TODO: Decryptor must start pushing the true value of the EP for be able to return to it at the end
-	if ((st = arch.build_decryptor(&decryptor, &parse, targets_decrypt, map.entry_point)) != SUCCESS)
+	if ((st = arch.prepare_decryptor(&map, &decryptor)) != SUCCESS
+	|| (st = arch.build_decryptor(&decryptor, &parse, targets_decrypt, map.entry_point)) != SUCCESS)
 		goto end;
 
 	arch.inject_decryptor(&map, &decryptor);
 
-	write_woody_file(map.addr, map.size, map.mode);
+	st = write_woody_file(map.addr, map.size, map.mode);
 
-	///TODO: In this situation freeing is irelevant, but if i'll do it anyways i have to handle all the cases ...
+	// Exit will free all the segments anyway
 	free(decryptor.data);
 	munmap(map.addr, map.size + MAX_PAYLOAD_SIZE);
 

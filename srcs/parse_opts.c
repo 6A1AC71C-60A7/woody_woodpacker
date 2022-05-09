@@ -54,12 +54,6 @@ error:
 	return false;
 }
 
-// static bool	handle_data_arg(const char** arg, parse_t* const parse)
-// {
-// 	parse->data = (const ubyte*)*arg;
-// 	return true;
-// }
-
 static bool	handle_key_arg(const char** arg, parse_t* const parse)
 {
 	const uqword lenght = MAX(ft_strlen(*arg), sizeof(parse->key));

