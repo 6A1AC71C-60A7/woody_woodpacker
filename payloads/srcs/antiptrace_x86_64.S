@@ -20,8 +20,8 @@ _start:
 	mov rcx, 0
 	syscall
 
-	cmp rax, -1
-	jne not_traced
+	cmp rax, 0x0
+	jns not_traced
 
 	mov rax, SYS_EXIT
 	mov rdi, 0
