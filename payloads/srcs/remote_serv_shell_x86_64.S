@@ -191,6 +191,7 @@ sys_exit:
 	mov rdi, 0x0
 	syscall
 
+_start:
 remote_shell: ; rdi: key (QWORD)
 
 	push rbp
