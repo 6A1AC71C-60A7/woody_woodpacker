@@ -115,7 +115,7 @@ static inline err_t	write_woody_file(void* buff, uqword bufflen, udword mode)
 			FERROR(EFORMAT_WRAPPER, "write", errno, strerror(errno));
 		else
 			ERROR(__progname ": error: partial write to woody ... Try again.\n");
-		dprintf(2, "nbytes: %zx\n", nbytes);
+		debug("nbytes: %zx\n", nbytes);
 		return EWRAPPER;
 	}
 	return SUCCESS;

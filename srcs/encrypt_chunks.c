@@ -15,7 +15,7 @@ void	encrypt_chunks(const crypt_pair_t* const chunks, uqword key, kcrypt_t kcryp
 {
 	for (uqword i = 0 ; chunks[i].start ; i++)
 	{
-		dprintf(2, "Encrypting chunk %zu at %p of length 0x%lx\n", i, chunks[i].start, chunks[i].nbytes);
+		debug("Encrypting chunk %zu at %p of length 0x%lx\n", i, chunks[i].start, chunks[i].nbytes);
 		kcrypt(chunks[i].start, chunks[i].nbytes, key);
 	}
 }
