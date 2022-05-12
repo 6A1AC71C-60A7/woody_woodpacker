@@ -24,7 +24,7 @@ INCS = $(LIBINCS) $(INCDIR)
 HDRS = $(addprefix $(INCDIR)/, payloads.S)
 
 DEFAULT_PAYLOAD=default_payload
-PAYLOADS=antiptrace decryptor regs_preservation regs_restoration remote_serv_shell
+PAYLOADS=antiptrace decryptor regs_preservation regs_restoration #remote_serv_shell
 ARCHS=x86_64 x86
 
 # Payloads to include in the header
@@ -112,15 +112,15 @@ $(PAYLOADS_x86): $(BINDIR)/%: $(OBJDIR)/%.o $(PAYLOAD_OBJ_x86) $(LIBS) link.ld |
 $(NAME): $(PAYLOADS_x86_64) Makefile
 	@echo "OD $< > $@"
 
-	@echo -ne "#pragma once\n\n#include <wd_types.h>\n" > $@
+	@printf '%s\n' "#pragma once" "" "#include <wd_types.h>" "" > $@
 
 	$(foreach payload, $(TARGET_PAYLOADS), \
-		echo -ne "\n$(TYPE) $(notdir $(payload))[] = {\n" >> $@; \
+		printf '%s\n' "" "$(TYPE) $(notdir $(payload))[] = {" >> $@; \
 		objdump -d $(payload) \
 		|  grep "^ " | cut -f2 | tr -d ' ' \
 		| sed 's/.\{2\}/0x&, /g' | tr -d '\n' \
 		| fold -s -w 76 | sed -e 's/^/\t/g' >> $@; \
-		echo -ne "\n};\n" >> $@;)
+		printf '%s\n' "" "};" "" >> $@;)
 
 
 # Cleanup
