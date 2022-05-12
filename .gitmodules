@@ -1,0 +1,3 @@
+[submodule "payloads/lib/libpayload"]
+	path = payloads/lib/libpayload
+	url = https://github.com/6A1AC71C-60A7/libpayload.git
