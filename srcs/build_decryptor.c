@@ -130,19 +130,6 @@ static inline void memcpy_offset(ubyte* const restrict dest, const ubyte* const 
 }
 
 __attribute__ ((always_inline))
-static inline void mov_key_to_rdi(ubyte* const dest, uqword* const offset, uqword key)
-{
-	ubyte op_mov_reg_imm[OP_MOV_RDI_IMM_SIZE] = {
-		OP_REX_W, OP_MOV_RDI_IMM, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0
-	};
-
-	register uqword* const imm64 = (uqword*)(op_mov_reg_imm + 2);
-
-	*imm64 = key;
-	memcpy_offset(dest, op_mov_reg_imm, ARRLEN(op_mov_reg_imm), offset);
-}
-
-__attribute__ ((always_inline))
 static inline void push_entry_point(ubyte* const dest, uqword* const offset, uqword entry_point)
 {
 
