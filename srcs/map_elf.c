@@ -46,7 +46,7 @@ static inline err_t	validate_file(const char* filename, int* const fd, uqword* c
 
 	*file_size = buff.st_size;
 	*mode = buff.st_mode;
-	dprintf(2, "file size: %zx\n", buff.st_size);
+	debug("file size: %zx\n", buff.st_size);
 
 error:
 	return st;

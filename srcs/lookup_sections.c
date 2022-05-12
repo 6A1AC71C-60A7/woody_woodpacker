@@ -64,7 +64,7 @@ err_t lookup_sections_X86_64(const parse_t* const in, const elf_map_t* map,
 				if (in->opts & O_SELECTSEC && !(in->sections & (1 << y)))
 					continue;
 
-				dprintf(2, "Found target %zu -> section %s at 0x%zx\n",
+				debug("Found target %zu -> section %s at 0x%zx\n",
 					amount, section_names + shdr[i].sh_name, shdr[i].sh_addr);
 
 				target_crypt[amount].nbytes = shdr[i].sh_size;

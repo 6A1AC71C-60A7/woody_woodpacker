@@ -21,7 +21,7 @@ Elf64_Shdr	*find_section(const elf_map_t* map, uqword offset, uqword size, const
 		{
 			if (name == NULL || (shdr[i].sh_name && !ft_strcmp(name, shstrtab + shdr[i].sh_name)))
 			{
-				dprintf(2, "Found section %s at offset 0x%zx\n", shdr[i].sh_name ? shstrtab + shdr[i].sh_name : NULL, shdr[i].sh_offset);
+				debug("Found section %s at offset 0x%zx\n", shdr[i].sh_name ? shstrtab + shdr[i].sh_name : NULL, shdr[i].sh_offset);
 				return ((void*)(map->addr) + shdr[i].sh_offset);
 			}
 		}
@@ -77,13 +77,13 @@ err_t lookup_segments_X86_64(const parse_t* const in, const elf_map_t* map,
 
 		if (phdr[ph_i].p_type == PT_LOAD)
 		{
-			dprintf(2, "Checking flags in segment %zu\n", ph_i);
+			debug("Checking flags in segment %zu\n", ph_i);
 
 			if ((phdr[ph_i].p_flags & PF_R) == PF_R
 			&& !find_section(map, phdr[ph_i].p_offset, phdr[ph_i].p_filesz, ".interp")
 			&& !find_section(map,  phdr[ph_i].p_offset, phdr[ph_i].p_filesz, ".dynamic"))
 			{
-				dprintf(2, "Found target %zu -> segment %zu at 0x%lx\n",amount,ph_i, phdr[ph_i].p_offset);
+				debug("Found target %zu -> segment %zu at 0x%lx\n",amount,ph_i, phdr[ph_i].p_offset);
 				target_crypt[amount].nbytes = phdr[ph_i].p_filesz;
 				target_crypt[amount].start = map->addr + phdr[ph_i].p_offset;
 				target_crypt[amount].type = CH_SEGMENT;

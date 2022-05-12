@@ -2,10 +2,10 @@
 #pragma once
 
 #include <stddef.h>
+#include <elf.h>
 #include <wd_types.h>
 #include <wd_error.h>
-#include <elf.h>
-
+#include <logger.h>
 
 #define MAX_PAYLOAD_SIZE 512UL
 

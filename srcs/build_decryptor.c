@@ -92,20 +92,20 @@ err_t	prepare_decryptor_x86_64(const elf_map_t *const map, decryptor_t* const de
 	uqword				virtual_space;
 	err_t				err;
 
-	dprintf(2, "text segment index: %zu, phnum %hu\n", i, eh->e_phnum);
+	debug("text segment index: %zu, phnum %hu\n", i, eh->e_phnum);
 	err = (i <= eh->e_phnum && decryptor->size <= page_size) ? SUCCESS : EARGUMENT;
 
-	dprintf(2, "payload size: 0x%lx\n", decryptor->size);
+	debug("payload size: 0x%lx\n", decryptor->size);
 
 	if (err == SUCCESS)
 	{
-		dprintf(2, "text:          offset: 0x%lx, virt addr: 0x%lx, file size: 0x%lx\n",
+		debug("text:          offset: 0x%lx, virt addr: 0x%lx, file size: 0x%lx\n",
 			ph[i].p_offset, ph[i].p_vaddr, ph[i].p_filesz);
 
 		if (j <= eh->e_phnum)
 		{
 			virtual_space = ph[j].p_vaddr - ph[i].p_vaddr + ph[i].p_memsz;
-			dprintf(2, "Max expansion size: 0x%lx, page size: 0x%lx\n", virtual_space, page_size);
+			debug("Max expansion size: 0x%lx, page size: 0x%lx\n", virtual_space, page_size);
 			err = (virtual_space >= page_size) ? SUCCESS : EARGUMENT;
 		}
 
@@ -182,12 +182,12 @@ static inline void build_stack_initializer_x86_64(ubyte* const dest, uqword* con
 	ft_memcpy(encrypted_woody_msg, woody_msg, ARRLEN(encrypted_woody_msg));
 
 	for (uqword i = 0; i < ARRLEN(woody_msg); i++)
-		dprintf(2, "%02hhx%c", encrypted_woody_msg[i], i != ARRLEN(woody_msg) - 1 ? ' ' : '\n');
+		debug("%02hhx%c", encrypted_woody_msg[i], i != ARRLEN(woody_msg) - 1 ? ' ' : '\n');
 
 	kcrypt_X86_64(encrypted_woody_msg, ARRLEN(encrypted_woody_msg), key);
 
 	for (uqword i = 0; i < ARRLEN(woody_msg); i++)
-		dprintf(2, "%02hhx%c", encrypted_woody_msg[i], i != ARRLEN(woody_msg) - 1 ? ' ' : '\n');
+		debug("%02hhx%c", encrypted_woody_msg[i], i != ARRLEN(woody_msg) - 1 ? ' ' : '\n');
 
 	/* Push the (encrypted) ". . . .WOODY. . . ." string */
 	for (uqword i = 0 ; i < ARRLEN(encrypted_woody_msg) ; i += sizeof(uqword))
@@ -206,10 +206,10 @@ static inline void build_stack_initializer_x86_64(ubyte* const dest, uqword* con
 	while (targets[++amount].start)
 	{
 		*imm64 = (uqword)targets[amount].start;
-		dprintf(2, "pushing chunk_vaddr: %jx\n", (uintmax_t)*imm64);
+		debug("pushing chunk_vaddr: %jx\n", (uintmax_t)*imm64);
 		memcpy_offset(dest, op_mov_push, ARRLEN(op_mov_push), offset);
 		*imm64 = targets[amount].nbytes;
-		dprintf(2, "pushing chunk_size: %jx\n", (uintmax_t)*imm64);
+		debug("pushing chunk_size: %jx\n", (uintmax_t)*imm64);
 		memcpy_offset(dest, op_mov_push, ARRLEN(op_mov_push), offset);
 	}
 
@@ -227,7 +227,7 @@ static inline void	relocate_targets(crypt_pair_t* const targets,
 		/* if the chunk to decrypt starts after or at the decryptor's offset */
 		if ((uqword)targets[i].start >= decryptor->vaddr)
 		{
-			dprintf(2, "relocating targets %zu\n", i);
+			debug("relocating targets %zu\n", i);
 			targets[i].start += page_size;
 		}
 	}
