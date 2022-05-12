@@ -18,9 +18,9 @@ DEPS		=		$(OBJS:.o=.d)
 # Flags
 DBGFLAGS	=		-g3 -fsanitize=address
 IFLAGS		=		-I$(INCDIR) -I$(PAYLOADDIR)
-CFLAGS		=		-Wall -Wextra $(IFLAGS) $(DBGFLAGS)
+CFLAGS		=		-Wall -Wextra $(IFLAGS) #$(DBGFLAGS)
 DFLAGS		=		-MT $@ -MMD -MP -MF $(OBJDIR)/$*.d
-LDFLAGS		=		$(LIBDIRS:%=-L%) $(DBGFLAGS)
+LDFLAGS		=		$(LIBDIRS:%=-L%) #$(DBGFLAGS)
 #LDLIBS		=		$(LIBARS:lib%.a=-l%)
 
 UNAME		=		$(shell uname -s)
