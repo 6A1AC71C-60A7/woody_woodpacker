@@ -77,8 +77,8 @@ uqword get_decryptor_size_x86_64(const parse_t* const in, const crypt_pair_t* co
 	if (in->opts & O_ANTIPTRCE)
 		size += ARRLEN(antiptrace_x86_64);
 
-	if (in->opts & O_REMOTE_SH)
-		size += OP_MOV_RDI_IMM_SIZE + ARRLEN(remote_serv_shell_x86_64);
+	// if (in->opts & O_REMOTE_SH)
+	// 	size += OP_MOV_RDI_IMM_SIZE + ARRLEN(remote_serv_shell_x86_64);
 
 	return size;
 }
@@ -263,11 +263,11 @@ err_t build_decryptor_x86_64(decryptor_t* const dest, const parse_t* const in,
 	if (in->opts & O_ANTIPTRCE)
 		memcpy_offset(dest->data, antiptrace_x86_64, ARRLEN(antiptrace_x86_64), &offset);
 
-	if (in->opts & O_REMOTE_SH)
-	{
-		mov_key_to_rdi(dest->data, &offset, in->key);
-		memcpy_offset(dest->data, remote_serv_shell_x86_64, ARRLEN(remote_serv_shell_x86_64), &offset);
-	}
+	// if (in->opts & O_REMOTE_SH)
+	// {
+	// 	mov_key_to_rdi(dest->data, &offset, in->key);
+	// 	memcpy_offset(dest->data, remote_serv_shell_x86_64, ARRLEN(remote_serv_shell_x86_64), &offset);
+	// }
 
 	build_stack_initializer_x86_64(dest->data, &offset, targets, in->key);
 
