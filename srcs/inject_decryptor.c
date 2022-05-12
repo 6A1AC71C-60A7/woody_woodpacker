@@ -36,15 +36,24 @@ err_t	prepare_decryptor_x86_64(const elf_map_t *const map, decryptor_t* const de
 	const Elf64_Ehdr*	eh = (Elf64_Ehdr*)map->addr;
 	const Elf64_Phdr*	ph = (Elf64_Phdr*)(map->addr + eh->e_phoff);
 	const uqword		i = find_text_segment(ph, eh->e_phnum);
+	const uqword		j = find_segment(ph + i, eh->e_phnum - i, PT_LOAD);
+	uqword				virtual_space;
 	err_t				err;
 
 	dprintf(2, "text segment index: %zu, phnum %hu\n", i, eh->e_phnum);
-	err = (i <= eh->e_phnum) ? SUCCESS : EARGUMENT;
+	err = (i <= eh->e_phnum && decryptor->size <= page_size) ? SUCCESS : EARGUMENT;
 
 	if (err == SUCCESS)
 	{
-		dprintf(2, "text:          offset: %lx, virt addr: %lx, file size: %lx\n",
+		dprintf(2, "text:          offset: 0x%lx, virt addr: 0x%lx, file size: 0x%lx\n",
 			ph[i].p_offset, ph[i].p_vaddr, ph[i].p_filesz);
+
+		if (j <= eh->e_phnum)
+		{
+			virtual_space = ph[j].p_vaddr - ph[i].p_vaddr + ph[i].p_memsz;
+			dprintf(2, "Max expansion size: 0x%lx, page size: 0x%lx\n", virtual_space, page_size);
+			err = (virtual_space >= page_size) ? SUCCESS : EARGUMENT;
+		}
 
 		// Get text segment offset for relocations
 		decryptor->segment_index = i;
@@ -67,7 +76,8 @@ inline static void	relocate_segments(Elf64_Ehdr* const eh, const uqword offset,
 	{
 		if (ph[i].p_offset > offset)
 		{
-			dprintf(2, "relocating segment %zu\n", i);
+			dprintf(2, "relocating segment %zu offset %zu -> %zu\n",
+				i, ph[i].p_offset, ph[i].p_offset + size);
 			ph[i].p_offset += size;
 		}
 	}
@@ -77,18 +87,21 @@ inline static void	relocate_sections(Elf64_Ehdr* const eh, const uqword offset,
 	const uqword size)
 {
 	Elf64_Shdr *const	sh = (void*)eh + eh->e_shoff;
+	const char*			sh_name = (char*)eh + sh[eh->e_shstrndx].sh_offset;
+	const char*			name;
 
 	for (uqword i = 0; i < eh->e_shnum; i++)
 	{
+		name = sh_name + sh[i].sh_name;
 		if (sh[i].sh_offset + sh[i].sh_size == offset)
 		{
-			dprintf(2, "expanding section %zu %s\n", i, (char*)eh+ sh[eh->e_shstrndx].sh_offset + sh[i].sh_offset);
+			dprintf(2, "expanding section %zu %s, size 0x%04zx -> 0x%04zx\n", i, name, sh[i].sh_size, sh[i].sh_size + size);
 			sh[i].sh_size += size;
 		}
 		// if the section data comes after the decriptor
 		else if (sh[i].sh_offset >= offset)
 		{
-			dprintf(2, "relocating section %zu\n", i);
+			dprintf(2, "relocating section %zu %s, offset 0x%04zx -> 0x%04zx\n", i, name, sh[i].sh_offset, sh[i].sh_offset + size);
 			sh[i].sh_offset += size;
 		}
 		else
@@ -115,7 +128,7 @@ inline static void	relocate_targets(const uqword vaddr, const uqword size)
 {
 	for (uqword i = 0; i < ARRLEN(targets_decrypt); i++)
 	{
-		if (targets_decrypt[i].type == CH_SECTION && (uqword)targets_decrypt[i].start >= vaddr)
+		if ((uqword)targets_decrypt[i].start >= vaddr)
 		{
 			dprintf(2, "relocating targets %zu\n", i);
 			targets_decrypt[i].start += size;
@@ -133,6 +146,7 @@ inline static void	expand_segment(Elf64_Ehdr* const eh, uqword *const filesize,
 	seg->p_filesz += size;
 	seg->p_memsz += size;
 
+	dprintf(2, "expanding segment of size %zu\n", size);
 	dprintf(2, "expanded segment %zu: offset: %lx, virt addr: %lx, file size: %lx\n",
 		i, seg->p_offset, seg->p_vaddr, seg->p_filesz);
 
