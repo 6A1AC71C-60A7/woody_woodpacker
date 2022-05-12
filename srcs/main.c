@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <wd_error.h>
 #include <wd_types.h>
@@ -66,9 +65,10 @@ static inline err_t parse_elf(const char* filename, parse_t* const parse,
 			map->entry_point = GET_ELF_ENTRY_POINT_X86_64(map->addr);
 			if ((st = lookup_segments_X86_64(parse, map, targets_crypt, targets_decrypt)) != SUCCESS)
 				goto end;
-			///TODO: FIND WHY
-			// if ((st = lookup_sections_X86_64(parse, map, targets_crypt, targets_decrypt)) != SUCCESS)
-			// 	goto end;
+			/*
+			if ((st = lookup_sections_X86_64(parse, map, targets_crypt, targets_decrypt)) != SUCCESS)
+				goto end;
+			*/
 			arch->kcrypt = &kcrypt_X86_64;
 			arch->prepare_decryptor = &prepare_decryptor_x86_64;
 			arch->build_decryptor = &build_decryptor_x86_64;
@@ -150,8 +150,12 @@ int main(int ac, const char* av[])
 
 	if ((st = parse_opts(&av, &parse)) != SUCCESS
 	|| (st = parse_elf(*av, &parse, &map, &arch)) != SUCCESS
-	|| (st = handle_key(&parse)) != SUCCESS
-	|| (st = arch.prepare_decryptor(&map, &decryptor)) != SUCCESS)
+	|| (st = handle_key(&parse)) != SUCCESS)
+		goto end;
+
+	decryptor.size = get_decryptor_size_x86_64(&parse, targets_decrypt);
+
+	if ((st = arch.prepare_decryptor(&map, &decryptor)) != SUCCESS)
 		goto end;
 
 	encrypt_chunks(targets_crypt, parse.key, arch.kcrypt);

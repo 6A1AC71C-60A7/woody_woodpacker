@@ -24,7 +24,7 @@ extern uqword	page_size;
 
 #define PAGE_ROUND(x) ((((x) / page_size) + ((x) % page_size != 0)) * page_size)
 
-//#define PAGE_ROUND(x)
+#define P_ISTEXT(ph) ((ph).p_type == PT_LOAD && ((ph).p_flags & (PF_X | PF_R)) == (PF_X | PF_R))
 
 typedef struct		elf_map
 {
@@ -73,7 +73,16 @@ err_t	lookup_sections_X86_64(const parse_t* const in, const elf_map_t* map,
 		crypt_pair_t* const target_crypt, crypt_pair_t* const target_decrypt);
 err_t	lookup_segments_X86_64(const parse_t* const in, const elf_map_t* map,
 		crypt_pair_t* const target_crypt, crypt_pair_t* const target_decrypt);
+Elf64_Shdr	*find_section(const elf_map_t* map, uqword offset, uqword size, const char *name);
+uqword		find_segment(Elf64_Phdr const *const ph, const Elf64_Half num,
+	const Elf64_Word type);
+uqword	find_text_segment(Elf64_Phdr const *const ph, const Elf64_Half num);
+
+
+uqword	get_decryptor_size_x86_64(const parse_t* const in, const crypt_pair_t* const targets);
+
 err_t	prepare_decryptor_x86_64(const elf_map_t *const map, decryptor_t* const dec);
+
 err_t	build_decryptor_x86_64(decryptor_t* const dest, const parse_t* const in,
 		crypt_pair_t* const targets, uqword ep);
 void	inject_decryptor_X86_64(elf_map_t* const map, const decryptor_t* const dec);

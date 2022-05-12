@@ -54,8 +54,7 @@ static const ubyte woody_msg[] = {
 #define OP_MOV_RDI_IMM '\xBF'
 #define OP_MOV_RDI_IMM_SIZE 0xa
 
-__attribute__ ((always_inline))
-static inline uqword get_decryptor_size_x86_64(const parse_t* const in, const crypt_pair_t* const targets)
+uqword get_decryptor_size_x86_64(const parse_t* const in, const crypt_pair_t* const targets)
 {
 	register qword size = ARRLEN(regs_preservation_x86_64) + ARRLEN(decryptor_x86_64); //+ ARRLEN(regs_restoration_x86_64);
 
@@ -82,6 +81,44 @@ static inline uqword get_decryptor_size_x86_64(const parse_t* const in, const cr
 		size += OP_MOV_RDI_IMM_SIZE + ARRLEN(remote_serv_shell_x86_64);
 
 	return size;
+}
+
+err_t	prepare_decryptor_x86_64(const elf_map_t *const map, decryptor_t* const decryptor)
+{
+	const Elf64_Ehdr*	eh = (Elf64_Ehdr*)map->addr;
+	const Elf64_Phdr*	ph = (Elf64_Phdr*)(map->addr + eh->e_phoff);
+	const uqword		i = find_text_segment(ph, eh->e_phnum);
+	const uqword		j = find_segment(ph + i, eh->e_phnum - i, PT_LOAD);
+	uqword				virtual_space;
+	err_t				err;
+
+	dprintf(2, "text segment index: %zu, phnum %hu\n", i, eh->e_phnum);
+	err = (i <= eh->e_phnum && decryptor->size <= page_size) ? SUCCESS : EARGUMENT;
+
+	dprintf(2, "payload size: 0x%lx\n", decryptor->size);
+
+	if (err == SUCCESS)
+	{
+		dprintf(2, "text:          offset: 0x%lx, virt addr: 0x%lx, file size: 0x%lx\n",
+			ph[i].p_offset, ph[i].p_vaddr, ph[i].p_filesz);
+
+		if (j <= eh->e_phnum)
+		{
+			virtual_space = ph[j].p_vaddr - ph[i].p_vaddr + ph[i].p_memsz;
+			dprintf(2, "Max expansion size: 0x%lx, page size: 0x%lx\n", virtual_space, page_size);
+			err = (virtual_space >= page_size) ? SUCCESS : EARGUMENT;
+		}
+
+		// Get text segment offset for relocations
+		decryptor->segment_index = i;
+		decryptor->segment_offset = ph[i].p_offset;
+
+		// Get decryptor offset
+		decryptor->offset = ph[i].p_offset + ph[i].p_filesz;
+		decryptor->vaddr = ph[i].p_vaddr + ph[i].p_memsz;
+	}
+
+	return (err);
 }
 
 __attribute__ ((always_inline))
@@ -182,14 +219,13 @@ static inline void build_stack_initializer_x86_64(ubyte* const dest, uqword* con
 }
 
 __attribute__((always_inline))
-static inline void	target_fixup(crypt_pair_t* const targets,
+static inline void	relocate_targets(crypt_pair_t* const targets,
 	const decryptor_t* const decryptor)
 {
 	for (uqword i = 0; i < PAIRARR_LEN; i++)
 	{
 		/* if the chunk to decrypt starts after or at the decryptor's offset */
-		if (targets[i].type == CH_SEGMENT
-		&& (uqword)targets[i].start >= decryptor->vaddr)
+		if ((uqword)targets[i].start >= decryptor->vaddr)
 		{
 			dprintf(2, "relocating targets %zu\n", i);
 			targets[i].start += page_size;
@@ -212,8 +248,7 @@ err_t build_decryptor_x86_64(decryptor_t* const dest, const parse_t* const in,
 {
 	uqword offset = 0;
 
-	target_fixup(targets, dest);
-	dest->size = get_decryptor_size_x86_64(in, targets);
+	relocate_targets(targets, dest);
 
 	if ((dest->data = (ubyte*)malloc(sizeof(ubyte) * dest->size)) == NULL)
 	{

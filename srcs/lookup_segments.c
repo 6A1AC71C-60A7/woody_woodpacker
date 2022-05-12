@@ -8,7 +8,7 @@
 
 #include <stdbool.h>
 
-inline static Elf64_Shdr	*find_section(const elf_map_t* map, uqword offset, uqword size, const char *name)
+Elf64_Shdr	*find_section(const elf_map_t* map, uqword offset, uqword size, const char *name)
 {
 	const Elf64_Shdr* const shdr = (void*)(map->addr) + ((Elf64_Ehdr*)map->addr)->e_shoff;
 	const char*	shstrtab = (void*)(map->addr) + shdr[((Elf64_Ehdr*)map->addr)->e_shstrndx].sh_offset;

@@ -1,4 +1,3 @@
-
 #include "wd_error.h"
 #include <wd_utils.h>
 #include <wd_parse.h>
@@ -10,18 +9,7 @@
 
 #include <unistd.h>
 
-#define P_ISTEXT(ph) ((ph).p_type == PT_LOAD && ((ph).p_flags & (PF_X | PF_R)) == (PF_X | PF_R))
-
-inline static uqword	find_text_segment(Elf64_Phdr const *const ph, const Elf64_Half num)
-{
-	uqword	i;
-
-	for (i = 0; i < num && !P_ISTEXT(ph[i]); i++);
-
-	return (i);
-}
-
-inline static uqword	find_segment(Elf64_Phdr const *const ph, const Elf64_Half num,
+uqword	find_segment(Elf64_Phdr const *const ph, const Elf64_Half num,
 	const Elf64_Word type)
 {
 	uqword	i;
@@ -31,40 +19,13 @@ inline static uqword	find_segment(Elf64_Phdr const *const ph, const Elf64_Half n
 	return (i);
 }
 
-err_t	prepare_decryptor_x86_64(const elf_map_t *const map, decryptor_t* const decryptor)
+uqword	find_text_segment(Elf64_Phdr const *const ph, const Elf64_Half num)
 {
-	const Elf64_Ehdr*	eh = (Elf64_Ehdr*)map->addr;
-	const Elf64_Phdr*	ph = (Elf64_Phdr*)(map->addr + eh->e_phoff);
-	const uqword		i = find_text_segment(ph, eh->e_phnum);
-	const uqword		j = find_segment(ph + i, eh->e_phnum - i, PT_LOAD);
-	uqword				virtual_space;
-	err_t				err;
+	uqword	i;
 
-	dprintf(2, "text segment index: %zu, phnum %hu\n", i, eh->e_phnum);
-	err = (i <= eh->e_phnum && decryptor->size <= page_size) ? SUCCESS : EARGUMENT;
+	for (i = 0; i < num && !P_ISTEXT(ph[i]); i++);
 
-	if (err == SUCCESS)
-	{
-		dprintf(2, "text:          offset: 0x%lx, virt addr: 0x%lx, file size: 0x%lx\n",
-			ph[i].p_offset, ph[i].p_vaddr, ph[i].p_filesz);
-
-		if (j <= eh->e_phnum)
-		{
-			virtual_space = ph[j].p_vaddr - ph[i].p_vaddr + ph[i].p_memsz;
-			dprintf(2, "Max expansion size: 0x%lx, page size: 0x%lx\n", virtual_space, page_size);
-			err = (virtual_space >= page_size) ? SUCCESS : EARGUMENT;
-		}
-
-		// Get text segment offset for relocations
-		decryptor->segment_index = i;
-		decryptor->segment_offset = ph[i].p_offset;
-
-		// Get decryptor offset
-		decryptor->offset = ph[i].p_offset + ph[i].p_filesz;
-		decryptor->vaddr = ph[i].p_vaddr + ph[i].p_memsz;
-	}
-
-	return (err);
+	return (i);
 }
 
 inline static void	relocate_segments(Elf64_Ehdr* const eh, const uqword offset,
@@ -124,18 +85,6 @@ inline static void	relocate_headers(Elf64_Ehdr* const eh, const uqword offset,
 	}
 }
 
-inline static void	relocate_targets(const uqword vaddr, const uqword size)
-{
-	for (uqword i = 0; i < ARRLEN(targets_decrypt); i++)
-	{
-		if ((uqword)targets_decrypt[i].start >= vaddr)
-		{
-			dprintf(2, "relocating targets %zu\n", i);
-			targets_decrypt[i].start += size;
-		}
-	}
-}
-
 inline static void	expand_segment(Elf64_Ehdr* const eh, uqword *const filesize,
 	const uqword i, const uqword size)
 {
@@ -176,8 +125,6 @@ void	inject_decryptor_X86_64(elf_map_t* const map, const decryptor_t* const dec)
 	Elf64_Ehdr *const	eh = (Elf64_Ehdr*)map->addr;
 
 	expand_segment(eh, &map->size, dec->segment_index, page_size);
-
-	relocate_targets(dec->vaddr, page_size);
 
 	dprintf(2, "injecting payload at 0x%zx, size: %zx\n",  dec->offset, dec->size);
 	ft_memcpy((void*)eh + dec->offset, dec->data, dec->size);
