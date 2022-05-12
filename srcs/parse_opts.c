@@ -8,6 +8,7 @@
 
 #include <string.h>
 
+__attribute__ ((unused))
 static bool	handle_section_arg(const char** arg, parse_t* const parse)
 {
 	static const char* const snames[] = {
@@ -108,13 +109,13 @@ static const struct
 		.l_opt_len = sizeof(O_REMOTE_SH_LSTR),
 		.handle = NULL
 	},
-	{
-		.s_opt = O_SELECTSEC_SSTR,
-		.s_opt_len = sizeof(O_SELECTSEC_SSTR),
-		.l_opt = O_SELECTSEC_LSTR,
-		.l_opt_len = sizeof(O_SELECTSEC_LSTR),
-		.handle = &handle_section_arg
-	},
+	// {
+	// 	.s_opt = O_SELECTSEC_SSTR,
+	// 	.s_opt_len = sizeof(O_SELECTSEC_SSTR),
+	// 	.l_opt = O_SELECTSEC_LSTR,
+	// 	.l_opt_len = sizeof(O_SELECTSEC_LSTR),
+	// 	.handle = NULL//&handle_section_arg
+	// },
 };
 
 /**
