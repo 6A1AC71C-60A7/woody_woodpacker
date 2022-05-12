@@ -56,7 +56,7 @@ LD=ld
 
 # Flags
 ASFLAGS=$(INCS:%=-I%)
-LDFLAGS=$(LIBDIRS:%=-L%) -T link.ld --gc-sections -z nodefaultlib
+LDFLAGS=$(LIBDIRS:%=-L%) -static -T link.ld --gc-sections -z nodefaultlib
 LDLIBS=$(LIBARS:lib%.a=-l%)
 
 ASFLAGS_x86_64=-f elf64
