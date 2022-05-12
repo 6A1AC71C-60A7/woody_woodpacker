@@ -116,7 +116,7 @@ $(NAME): $(PAYLOADS_x86_64) Makefile
 
 	$(foreach payload, $(TARGET_PAYLOADS), \
 		printf '%s\n' "" "$(TYPE) $(notdir $(payload))[] = {" >> $@; \
-		objdump -d $(payload) \
+		objdump -D $(payload) \
 		|  grep "^ " | cut -f2 | tr -d ' ' \
 		| sed 's/.\{2\}/0x&, /g' | tr -d '\n' \
 		| fold -s -w 76 | sed -e 's/^/\t/g' >> $@; \
