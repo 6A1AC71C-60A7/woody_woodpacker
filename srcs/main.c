@@ -150,13 +150,13 @@ int main(int ac, const char* av[])
 
 	if ((st = parse_opts(&av, &parse)) != SUCCESS
 	|| (st = parse_elf(*av, &parse, &map, &arch)) != SUCCESS
-	|| (st = handle_key(&parse)) != SUCCESS)
+	|| (st = handle_key(&parse)) != SUCCESS
+	|| (st = arch.prepare_decryptor(&map, &decryptor)) != SUCCESS)
 		goto end;
 
 	encrypt_chunks(targets_crypt, parse.key, arch.kcrypt);
 
-	if ((st = arch.prepare_decryptor(&map, &decryptor)) != SUCCESS
-	|| (st = arch.build_decryptor(&decryptor, &parse, targets_decrypt, map.entry_point)) != SUCCESS)
+	if ((st = arch.build_decryptor(&decryptor, &parse, targets_decrypt, map.entry_point)) != SUCCESS)
 		goto end;
 
 	arch.inject_decryptor(&map, &decryptor);
